@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+*.js
+*.cjs
+*.mjs
+!.lintstagedrc.cjs
+!.prettierrc.cjs
+!commitlint.config.cjs
+!.eslintrc.cjs

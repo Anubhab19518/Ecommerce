@@ -1,0 +1,63 @@
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "docker_containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    regex         = "(.*)"
+    target_label  = "service"
+  }
+
+  // Drop Alloy's own logs to prevent circular logging loops
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/app-alloy"
+    action        = "drop"
+  }
+}
+
+loki.source.docker "docker_logs" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker_containers.output
+  forward_to = [loki.process.logs_parser.receiver]
+}
+
+loki.process "logs_parser" {
+  stage.json {
+    expressions = {
+      level     = "level",
+      message   = "message",
+      timestamp = "timestamp",
+      requestId = "requestId",
+    }
+  }
+
+  stage.labels {
+    values = {
+      level     = "level",
+      requestId = "requestId",
+    }
+  }
+
+  stage.timestamp {
+    source = "timestamp"
+    format = "RFC3339"
+  }
+
+  forward_to = [loki.write.loki_endpoint.receiver]
+}
+
+loki.write "loki_endpoint" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

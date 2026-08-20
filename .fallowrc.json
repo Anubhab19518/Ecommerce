@@ -1,0 +1,4 @@
+{
+  "ignoreDependencies": ["pg", "pg-hstore", "eslint-config-prettier"],
+  "entry": ["src/index.ts", "src/infrastructure/database/migrations/*.js"]
+}

@@ -1,0 +1,14 @@
+FROM node:24-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY package.json package-lock.json ./
+RUN npm install --ignore-scripts
+
+# Copy source
+COPY . .
+
+EXPOSE 8080
+
+CMD ["npm", "run", "dev"]
