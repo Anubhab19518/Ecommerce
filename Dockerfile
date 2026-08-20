@@ -30,7 +30,7 @@ COPY --from=build --chown=appuser:appgroup /app/dist ./dist
 COPY --from=build --chown=appuser:appgroup /app/package.json ./
 
 # Copy migrations (needed at runtime for migration:run)
-COPY --from=build --chown=appuser:appgroup /app/src/infrastructure/database/migrations ./src/infrastructure/database/migrations
+COPY --from=build --chown=appuser:appgroup /app/src/infrastructure/database/migrations ./dist/infrastructure/database/migrations
 
 USER appuser
 

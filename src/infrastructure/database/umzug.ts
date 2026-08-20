@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import type { QueryInterface, Sequelize } from 'sequelize';
+import { Sequelize, type QueryInterface } from 'sequelize';
 import { Umzug, SequelizeStorage, type RunnableMigration } from 'umzug';
 import { logger } from '@infrastructure/logging/logger';
 import { getSequelize } from './connection';
@@ -30,19 +30,19 @@ function resolveMigrations(): Array<RunnableMigration<Sequelize>> {
       up: async (): Promise<void> => {
         // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
         const migration = require(path.join(migrationsDir, file)) as {
-          up?: (qi: QueryInterface, seq: Sequelize) => Promise<void>;
+          up?: (qi: QueryInterface, seq: typeof Sequelize) => Promise<void>;
         };
         if (typeof migration.up === 'function') {
-          await migration.up(getSequelize().getQueryInterface(), getSequelize());
+          await migration.up(getSequelize().getQueryInterface(), Sequelize);
         }
       },
       down: async (): Promise<void> => {
         // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
         const migration = require(path.join(migrationsDir, file)) as {
-          down?: (qi: QueryInterface, seq: Sequelize) => Promise<void>;
+          down?: (qi: QueryInterface, seq: typeof Sequelize) => Promise<void>;
         };
         if (typeof migration.down === 'function') {
-          await migration.down(getSequelize().getQueryInterface(), getSequelize());
+          await migration.down(getSequelize().getQueryInterface(), Sequelize);
         }
       },
     };

@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
 import { logger } from '@infrastructure/logging/logger';
 import { AppError } from './app-error';
 
@@ -7,6 +8,19 @@ import { AppError } from './app-error';
  * Must be registered AFTER all routes.
  */
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
+  if (err instanceof ZodError) {
+    const firstIssue = err.errors[0];
+    const message = firstIssue?.message ?? 'Validation error';
+
+    res.status(400).json({
+      status: 'error',
+      message,
+      code: 'VALIDATION_ERROR',
+      requestId: req.headers['x-request-id'] ?? undefined,
+    });
+    return;
+  }
+
   // Known operational errors
   if (err instanceof AppError) {
     logger.warn(`Operational error: ${err.message}`, {

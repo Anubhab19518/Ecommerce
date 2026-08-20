@@ -1,6 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 import { dbQueryDuration } from '@infrastructure/metrics/metrics';
-import { UserModelDef, type UserModel, type UserCreationAttributes } from './user.model';
+import {
+  UserModelDef,
+  type UserModel,
+  type UserCreationAttributes,
+  type UserAttributes,
+} from './user.model';
 import type { CreateUserInput, UpdateUserInput } from './user.validator';
 
 /**
@@ -32,23 +37,31 @@ export class UserRepository {
     return user;
   }
 
-  async create(input: CreateUserInput): Promise<UserModel> {
+  async create(input: CreateUserInput & { passwordHash?: string | null }): Promise<UserModel> {
     const end = dbQueryDuration.startTimer({ operation: 'create', model: 'User' });
     const user = await this.model.create({
       id: uuidv4(),
       email: input.email,
       name: input.name,
+      passwordHash: input.passwordHash ?? null,
     } as UserCreationAttributes);
     end();
     return user;
   }
 
-  async update(id: string, input: UpdateUserInput): Promise<UserModel | null> {
+  async update(
+    id: string,
+    input: UpdateUserInput & { passwordHash?: string | null },
+  ): Promise<UserModel | null> {
     const user = await this.findById(id);
     if (!user) return null;
 
     const end = dbQueryDuration.startTimer({ operation: 'update', model: 'User' });
-    await user.update(input);
+    const payload: Partial<UserAttributes> = {};
+    if (input.email !== undefined) payload.email = input.email;
+    if (input.name !== undefined) payload.name = input.name;
+    if (input.passwordHash !== undefined) payload.passwordHash = input.passwordHash;
+    await user.update(payload);
     end();
     return user;
   }

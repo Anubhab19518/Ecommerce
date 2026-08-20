@@ -1,4 +1,12 @@
 {
-  "ignoreDependencies": ["pg", "pg-hstore", "eslint-config-prettier"],
-  "entry": ["src/index.ts", "src/infrastructure/database/migrations/*.js"]
+  "ignoreDependencies": [
+    "pg",
+    "pg-hstore",
+    "eslint-config-prettier",
+    "tsconfig-paths"
+  ],
+  "entry": ["src/index.ts", "src/infrastructure/database/migrations/*.js"],
+  "duplicates": {
+    "ignore": ["src/infrastructure/database/migrations/**"]
+  }
 }

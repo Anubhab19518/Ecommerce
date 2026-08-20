@@ -10,16 +10,24 @@ const MODULE_SCHEMA_MAP = {
   user: 'user_module',
   notification: 'notification_module',
   authorization: 'authorization_module',
+  catalog: 'catalog_module',
   health: null,
+  auth: null,
 };
 
 const SCHEMA_TO_MODULE = {
   user_module: 'user',
   notification_module: 'notification',
   authorization_module: 'authorization',
+  catalog_module: 'catalog',
 };
 
-const ALL_SCHEMAS = ['user_module', 'notification_module', 'authorization_module'];
+const ALL_SCHEMAS = [
+  'user_module',
+  'notification_module',
+  'authorization_module',
+  'catalog_module',
+];
 
 function matchesSchema(value, schema) {
   const regex = new RegExp(`(\\b"${schema}"|'${schema}'|\\b${schema})\\s*\\.`, 'i');

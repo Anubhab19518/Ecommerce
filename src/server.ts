@@ -1,8 +1,11 @@
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { type Application, json, urlencoded } from 'express';
 import helmet from 'helmet';
+import { authRoutes } from '@modules/auth';
 import { authorizationRoutes } from '@modules/authorization';
+import { catalogRoutes } from '@modules/catalog';
 import { healthRoutes } from '@modules/health/health.routes';
 import { userRoutes } from '@modules/user/user.routes';
 import { errorHandler } from '@shared/errors/error-handler';
@@ -25,8 +28,9 @@ export function createApp(): Application {
   app.use(
     cors({
       origin: process.env.CORS_ORIGIN ?? '*',
+      credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'X-Ecommerce-Id'],
       exposedHeaders: ['X-Request-Id'],
       maxAge: 86400,
     }),
@@ -35,7 +39,8 @@ export function createApp(): Application {
   // -------- Compression --------
   app.use(compression());
 
-  // -------- Body parsing --------
+  // -------- Body & Cookie parsing --------
+  app.use(cookieParser());
   app.use(json({ limit: '1mb' }));
   app.use(urlencoded({ extended: true, limit: '1mb' }));
 
@@ -47,11 +52,17 @@ export function createApp(): Application {
   // -------- Health routes (no auth required) --------
   app.use('/api/v1/health', healthRoutes);
 
+  // -------- Auth routes --------
+  app.use('/api/v1/auth', authRoutes);
+
   // -------- User routes --------
   app.use('/api/v1/users', userRoutes);
 
   // -------- Authorization admin routes --------
   app.use('/api/v1/authorization', authorizationRoutes);
+
+  // -------- Catalog routes --------
+  app.use('/api/v1/catalog', catalogRoutes);
 
   // -------- 404 --------
   app.use((_req, res) => {

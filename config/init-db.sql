@@ -18,13 +18,22 @@ CREATE SCHEMA IF NOT EXISTS notification_module;
 -- Authorization module schema
 CREATE SCHEMA IF NOT EXISTS authorization_module;
 
+-- Catalog module schema
+CREATE SCHEMA IF NOT EXISTS catalog_module;
+
+-- Enable PostgreSQL LTREE extension for hierarchical category paths
+CREATE EXTENSION IF NOT EXISTS ltree;
+
 -- Grant usage to the application user
 GRANT USAGE ON SCHEMA user_module TO appuser;
 GRANT USAGE ON SCHEMA notification_module TO appuser;
 GRANT USAGE ON SCHEMA authorization_module TO appuser;
+GRANT USAGE ON SCHEMA catalog_module TO appuser;
 GRANT CREATE ON SCHEMA user_module TO appuser;
 GRANT CREATE ON SCHEMA notification_module TO appuser;
 GRANT CREATE ON SCHEMA authorization_module TO appuser;
+GRANT CREATE ON SCHEMA catalog_module TO appuser;
 
 -- Ensure the default search_path includes public for SequelizeMeta
-ALTER ROLE appuser SET search_path TO public, user_module, notification_module, authorization_module;
+ALTER ROLE appuser SET search_path TO public, user_module, notification_module, authorization_module, catalog_module;
+

@@ -1,5 +1,6 @@
+import { hash, compare } from 'bcrypt';
 import { notificationService, EventType } from '@modules/notification';
-import { NotFoundError, ConflictError, ValidationError } from '@shared/errors';
+import { NotFoundError, ConflictError, ValidationError, UnauthorizedError } from '@shared/errors';
 import type { UserModel } from './user.model';
 import { UserRepository } from './user.repository';
 import type { CreateUserInput, UpdateUserInput } from './user.validator';
@@ -22,6 +23,24 @@ export class UserService {
     return user;
   }
 
+  async getUserByEmail(email: string): Promise<UserModel | null> {
+    return this.repo.findByEmail(email);
+  }
+
+  async verifyCredentials(email: string, password: string): Promise<UserModel> {
+    const user = await this.repo.findByEmail(email);
+    if (!user || !user.passwordHash) {
+      throw new UnauthorizedError('Invalid email or password');
+    }
+
+    const isValid = await compare(password, user.passwordHash);
+    if (!isValid) {
+      throw new UnauthorizedError('Invalid email or password');
+    }
+
+    return user;
+  }
+
   async createUser(input: CreateUserInput): Promise<UserModel> {
     // Check uniqueness
     const existing = await this.repo.findByEmail(input.email);
@@ -29,7 +48,16 @@ export class UserService {
       throw new ConflictError(`User with email "${input.email}" already exists`);
     }
 
-    const user = await this.repo.create(input);
+    let passwordHash: string | null = null;
+    if (input.password) {
+      passwordHash = await hash(input.password, 10);
+    }
+
+    const user = await this.repo.create({
+      email: input.email,
+      name: input.name,
+      passwordHash,
+    });
 
     // Publish event for other modules to react to
     notificationService.publish(EventType.USER_CREATED, {
@@ -53,7 +81,16 @@ export class UserService {
       }
     }
 
-    const user = await this.repo.update(id, input);
+    let passwordHash: string | undefined = undefined;
+    if (input.password) {
+      passwordHash = await hash(input.password, 10);
+    }
+
+    const user = await this.repo.update(id, {
+      email: input.email,
+      name: input.name,
+      passwordHash,
+    });
     if (!user) throw new NotFoundError('User');
 
     notificationService.publish(EventType.USER_UPDATED, {

@@ -6,12 +6,16 @@ export interface UserAttributes {
   id: string;
   email: string;
   name: string;
+  passwordHash?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
 // Input types for creation (id is optional)
-export type UserCreationAttributes = Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt'>;
+export type UserCreationAttributes = Optional<
+  UserAttributes,
+  'id' | 'passwordHash' | 'createdAt' | 'updatedAt'
+>;
 
 // ---------- Model ----------
 export type UserModel = Model<UserAttributes, UserCreationAttributes> & UserAttributes;
@@ -32,6 +36,11 @@ export const UserModelDef = getSequelize().define<UserModel>(
     name: {
       type: DataTypes.STRING(255),
       allowNull: false,
+    },
+    passwordHash: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'password_hash',
     },
     createdAt: {
       type: DataTypes.DATE,

@@ -4,6 +4,7 @@ const config: Config = {
   // ---- Runtime ----
   preset: 'ts-jest',
   testEnvironment: 'node',
+  setupFiles: ['<rootDir>/src/test-setup.ts'],
 
   // ---- File patterns ----
   roots: ['<rootDir>/src'],

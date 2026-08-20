@@ -42,6 +42,12 @@ jest.mock('@shared/errors', () => ({
       this.name = 'ValidationError';
     }
   },
+  UnauthorizedError: class extends Error {
+    constructor(message = 'Unauthorized') {
+      super(message);
+      this.name = 'UnauthorizedError';
+    }
+  },
 }));
 
 jest.mock('@infrastructure/logging/logger', () => ({
@@ -105,7 +111,7 @@ describe('UserService - createUser', () => {
     const result = await service.createUser(input);
 
     expect(result).toEqual(created);
-    expect(mockRepo.create).toHaveBeenCalledWith(input);
+    expect(mockRepo.create).toHaveBeenCalledWith({ ...input, passwordHash: null });
   });
 
   it('should throw ConflictError when email already exists', async () => {
@@ -192,5 +198,64 @@ describe('UserService - updateUser & deleteUser', () => {
     mockRepo.delete.mockResolvedValue(false);
 
     await expect(service.deleteUser('999')).rejects.toThrow('User not found');
+  });
+
+  describe('getUserByEmail', () => {
+    it('returns user by email when found', async () => {
+      const user = { id: '1', email: 'test@example.com', name: 'Test' };
+      mockRepo.findByEmail.mockResolvedValueOnce(user);
+
+      const result = await service.getUserByEmail('test@example.com');
+      expect(result).toEqual(user);
+    });
+
+    it('returns null when user not found', async () => {
+      mockRepo.findByEmail.mockResolvedValueOnce(null);
+      const result = await service.getUserByEmail('notfound@example.com');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('verifyCredentials', () => {
+    it('returns user on valid password match', async () => {
+      const bcrypt = require('bcrypt');
+      const hash = await bcrypt.hash('Password123!', 10);
+      const user = { id: '1', email: 'test@example.com', name: 'Test', passwordHash: hash };
+      mockRepo.findByEmail.mockResolvedValueOnce(user);
+
+      const result = await service.verifyCredentials('test@example.com', 'Password123!');
+      expect(result).toEqual(user);
+    });
+
+    it('throws UnauthorizedError if user not found', async () => {
+      mockRepo.findByEmail.mockResolvedValueOnce(null);
+      await expect(
+        service.verifyCredentials('notfound@example.com', 'Password123!'),
+      ).rejects.toThrow('Invalid email or password');
+    });
+
+    it('throws UnauthorizedError if user has no passwordHash', async () => {
+      mockRepo.findByEmail.mockResolvedValueOnce({
+        id: '1',
+        email: 'nopass@example.com',
+        passwordHash: null,
+      });
+      await expect(service.verifyCredentials('nopass@example.com', 'Password123!')).rejects.toThrow(
+        'Invalid email or password',
+      );
+    });
+
+    it('throws UnauthorizedError if password does not match', async () => {
+      const bcrypt = require('bcrypt');
+      const hash = await bcrypt.hash('CorrectPassword!', 10);
+      mockRepo.findByEmail.mockResolvedValueOnce({
+        id: '1',
+        email: 'test@example.com',
+        passwordHash: hash,
+      });
+      await expect(service.verifyCredentials('test@example.com', 'WrongPassword!')).rejects.toThrow(
+        'Invalid email or password',
+      );
+    });
   });
 });
