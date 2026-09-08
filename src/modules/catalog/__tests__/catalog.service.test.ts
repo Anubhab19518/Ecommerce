@@ -18,7 +18,10 @@ jest.mock('@infrastructure/database/connection', () => {
 
   return {
     getSequelize: jest.fn(() => ({
-      transaction: jest.fn(async (cb: (t: unknown) => Promise<unknown>) => cb({})),
+      transaction: jest.fn(async (cb?: (t: unknown) => Promise<unknown>) => {
+        const t = { commit: jest.fn(), rollback: jest.fn() };
+        return cb ? cb(t) : t;
+      }),
       query: jest.fn().mockResolvedValue([[]]),
       define: jest.fn(() => modelDef),
     })),
@@ -79,6 +82,28 @@ describe('CatalogService', () => {
     deleteProductVariant: jest.Mock;
     findAllUnits: jest.Mock;
     findUnitById: jest.Mock;
+
+    createBanner: jest.Mock;
+    findBannerById: jest.Mock;
+    findBannersByEcommerce: jest.Mock;
+    updateBanner: jest.Mock;
+    deleteBanner: jest.Mock;
+    createOrder: jest.Mock;
+    listOrders: jest.Mock;
+    getOrderById: jest.Mock;
+    updateOrderStatus: jest.Mock;
+    createCoupon: jest.Mock;
+    findCouponById: jest.Mock;
+    getCouponById: jest.Mock;
+    getCouponByCode: jest.Mock;
+    updateCoupon: jest.Mock;
+    deleteCoupon: jest.Mock;
+    listCoupons: jest.Mock;
+    listCustomers: jest.Mock;
+    recordCouponUsage: jest.Mock;
+    getCustomerOrderCount: jest.Mock;
+    getCustomerCouponUsageCount: jest.Mock;
+    getDescendantCategoryIds: jest.Mock;
   };
 
   const ecommerceId = 'ecom-111';
@@ -125,6 +150,28 @@ describe('CatalogService', () => {
       deleteProductVariant: jest.fn(),
       findAllUnits: jest.fn(),
       findUnitById: jest.fn(),
+
+      createBanner: jest.fn(),
+      findBannerById: jest.fn(),
+      findBannersByEcommerce: jest.fn(),
+      updateBanner: jest.fn(),
+      deleteBanner: jest.fn(),
+      createOrder: jest.fn(),
+      listOrders: jest.fn(),
+      getOrderById: jest.fn(),
+      updateOrderStatus: jest.fn(),
+      createCoupon: jest.fn(),
+      findCouponById: jest.fn(),
+      getCouponById: jest.fn(),
+      getCouponByCode: jest.fn(),
+      updateCoupon: jest.fn(),
+      deleteCoupon: jest.fn(),
+      listCoupons: jest.fn(),
+      listCustomers: jest.fn(),
+      recordCouponUsage: jest.fn(),
+      getCustomerOrderCount: jest.fn(),
+      getCustomerCouponUsageCount: jest.fn(),
+      getDescendantCategoryIds: jest.fn(),
     };
 
     // Inject mock repository
@@ -383,94 +430,110 @@ describe('CatalogService', () => {
         id: 'opt-vol',
         productId,
         name: 'Volume',
-        unitId: unitLiterId,
         displayOrder: 0,
       });
 
       const result = await service.createProductOption(ecommerceId, productId, {
         name: 'Volume',
-        unitId: unitLiterId,
       });
 
-      expect(mockRepo.findUnitById).toHaveBeenCalledWith(unitLiterId);
-      expect(mockRepo.createProductOption).toHaveBeenCalledWith(
-        productId,
-        expect.objectContaining({ name: 'Volume', unitId: unitLiterId }),
-      );
-      expect(result.unitId).toBe(unitLiterId);
+      expect(result.name).toBe('Volume');
     });
 
-    it('creates unit-less option (e.g. Color with unitId = null)', async () => {
+    it('creates unit-less option value (e.g. Color with unitId = null)', async () => {
       mockRepo.findProductById.mockResolvedValue({ id: productId, ecommerceId });
-      mockRepo.findOptionsByProduct.mockResolvedValue([]);
-      mockRepo.createProductOption.mockResolvedValue({
+      mockRepo.findProductOptionById.mockResolvedValue({
         id: 'opt-col',
         productId,
         name: 'Color',
+        values: [],
+      });
+      mockRepo.createProductOptionValue.mockResolvedValue({
+        id: 'val-black',
+        productOptionId: 'opt-col',
+        value: 'Black',
         unitId: null,
         displayOrder: 0,
       });
 
-      const result = await service.createProductOption(ecommerceId, productId, {
-        name: 'Color',
+      const result = await service.createProductOptionValue(ecommerceId, productId, 'opt-col', {
+        value: 'Black',
+        unitId: null,
       });
 
       expect(mockRepo.findUnitById).not.toHaveBeenCalled();
       expect(result.unitId).toBeNull();
     });
 
-    it('rejects option creation when referenced unitId does not exist', async () => {
+    it('rejects option value creation when referenced unitId does not exist', async () => {
       mockRepo.findProductById.mockResolvedValue({ id: productId, ecommerceId });
-      mockRepo.findOptionsByProduct.mockResolvedValue([]);
+      mockRepo.findProductOptionById.mockResolvedValue({
+        id: 'opt-vol',
+        productId,
+        name: 'Volume',
+        values: [],
+      });
       mockRepo.findUnitById.mockResolvedValue(null);
 
       await expect(
-        service.createProductOption(ecommerceId, productId, {
-          name: 'Volume',
+        service.createProductOptionValue(ecommerceId, productId, 'opt-vol', {
+          value: '250',
           unitId: 'non-existent-unit',
         }),
       ).rejects.toThrow(NotFoundError);
     });
 
-    it('updates option unit successfully when unitId is valid', async () => {
+    it('updates option value unit successfully when unitId is valid', async () => {
+      mockRepo.findProductById.mockResolvedValue({ id: productId, ecommerceId });
       mockRepo.findProductOptionById.mockResolvedValue({
         id: 'opt-vol',
         productId,
         name: 'Volume',
+        values: [],
+      });
+      mockRepo.findProductOptionValueById.mockResolvedValue({
+        id: 'val-1',
+        productOptionId: 'opt-vol',
+        value: '250',
         unitId: null,
       });
-      mockRepo.findProductById.mockResolvedValue({ id: productId, ecommerceId });
       mockRepo.findUnitById.mockResolvedValue({
         id: unitLiterId,
         name: 'Liter',
         symbol: 'L',
       });
-      mockRepo.updateProductOption.mockResolvedValue({
-        id: 'opt-vol',
-        productId,
-        name: 'Volume',
+      mockRepo.updateProductOptionValue.mockResolvedValue({
+        id: 'val-1',
+        productOptionId: 'opt-vol',
+        value: '250',
         unitId: unitLiterId,
       });
 
-      const updated = await service.updateProductOption(ecommerceId, productId, 'opt-vol', {
-        unitId: unitLiterId,
-      });
+      const updated = await service.updateProductOptionValue(
+        ecommerceId,
+        productId,
+        'opt-vol',
+        'val-1',
+        {
+          unitId: unitLiterId,
+        },
+      );
 
       expect(mockRepo.findUnitById).toHaveBeenCalledWith(unitLiterId);
       expect(updated.unitId).toBe(unitLiterId);
     });
 
-    it('rejects option update when target unitId does not exist', async () => {
-      mockRepo.findProductOptionById.mockResolvedValue({
-        id: 'opt-vol',
-        productId,
-        name: 'Volume',
-      });
+    it('rejects option value update when target unitId does not exist', async () => {
       mockRepo.findProductById.mockResolvedValue({ id: productId, ecommerceId });
+      mockRepo.findProductOptionValueById.mockResolvedValue({
+        id: 'val-1',
+        productOptionId: 'opt-vol',
+        value: '250',
+      });
       mockRepo.findUnitById.mockResolvedValue(null);
 
       await expect(
-        service.updateProductOption(ecommerceId, productId, 'opt-vol', {
+        service.updateProductOptionValue(ecommerceId, productId, 'opt-vol', 'val-1', {
           unitId: 'invalid-unit-id',
         }),
       ).rejects.toThrow(NotFoundError);
@@ -884,6 +947,21 @@ describe('CatalogService', () => {
         service.createProductOptionValue(ecommerceId, productId, optColorId, { value: 'Red' }),
       ).rejects.toThrow(ConflictError);
 
+      // Unit missing on option value creation
+      mockRepo.findProductById.mockResolvedValueOnce({ id: productId, ecommerceId });
+      mockRepo.findProductOptionById.mockResolvedValueOnce({
+        id: optColorId,
+        productId,
+        values: [],
+      });
+      mockRepo.findUnitById.mockResolvedValueOnce(null);
+      await expect(
+        service.createProductOptionValue(ecommerceId, productId, optColorId, {
+          value: 'Blue',
+          unitId: 'invalid-unit',
+        }),
+      ).rejects.toThrow(NotFoundError);
+
       // Valid option value creation
       mockRepo.createProductOptionValue.mockResolvedValue({ id: 'v2', value: 'Blue' });
       const created = await service.createProductOptionValue(ecommerceId, productId, optColorId, {
@@ -905,6 +983,17 @@ describe('CatalogService', () => {
       await expect(
         service.updateProductOptionValue(ecommerceId, productId, optColorId, 'v2', {
           value: 'Navy',
+        }),
+      ).rejects.toThrow(NotFoundError);
+
+      // Update option value - unit missing
+      mockRepo.findProductById.mockResolvedValueOnce({ id: productId, ecommerceId });
+      mockRepo.findProductOptionValueById.mockResolvedValueOnce({ id: 'v2', value: 'Blue' });
+      mockRepo.findUnitById.mockResolvedValueOnce(null);
+      await expect(
+        service.updateProductOptionValue(ecommerceId, productId, optColorId, 'v2', {
+          value: 'Navy',
+          unitId: 'invalid-unit',
         }),
       ).rejects.toThrow(NotFoundError);
 
@@ -947,15 +1036,20 @@ describe('CatalogService', () => {
     it('createProduct and updateProduct category reference validation', async () => {
       // Create product with duplicate slug
       mockRepo.findProductBySlug.mockResolvedValueOnce({ id: 'existing-p' });
-      await expect(service.createProduct(ecommerceId, { name: 'P', slug: 'p' })).rejects.toThrow(
-        ConflictError,
-      );
+      await expect(
+        service.createProduct(ecommerceId, { name: 'P', slug: 'p', price: 10 }),
+      ).rejects.toThrow(ConflictError);
 
       // Create product with non-existent category
       mockRepo.findProductBySlug.mockResolvedValueOnce(null);
       mockRepo.findCategoryById.mockResolvedValueOnce(null);
       await expect(
-        service.createProduct(ecommerceId, { name: 'P', slug: 'p', categoryId: 'missing-cat' }),
+        service.createProduct(ecommerceId, {
+          name: 'P',
+          slug: 'p',
+          price: 10,
+          categoryId: 'missing-cat',
+        }),
       ).rejects.toThrow(NotFoundError);
 
       // Update product with non-existent category
@@ -1046,7 +1140,11 @@ describe('CatalogService', () => {
       // Create variant - product missing
       mockRepo.findProductById.mockResolvedValueOnce(null);
       await expect(
-        service.createVariant(ecommerceId, productId, { sku: 'SKU-1', optionValueIds: [val1] }),
+        service.createVariant(ecommerceId, productId, {
+          sku: 'SKU-1',
+          price: 99.99,
+          optionValueIds: [val1],
+        }),
       ).rejects.toThrow(NotFoundError);
 
       // Create variant - invalid option values (missing in DB)
@@ -1058,7 +1156,11 @@ describe('CatalogService', () => {
       mockRepo.findVariantBySku.mockResolvedValueOnce(null);
       mockRepo.findOptionValuesByIds.mockResolvedValueOnce([]); // Empty result
       await expect(
-        service.createVariant(ecommerceId, productId, { sku: 'SKU-1', optionValueIds: [val1] }),
+        service.createVariant(ecommerceId, productId, {
+          sku: 'SKU-1',
+          price: 99.99,
+          optionValueIds: [val1],
+        }),
       ).rejects.toThrow('One or more option value IDs are invalid');
 
       // Create variant - option value belongs to another product
@@ -1073,7 +1175,11 @@ describe('CatalogService', () => {
       ]);
       mockRepo.findOptionsByProduct.mockResolvedValueOnce([{ id: 'opt-prod', name: 'Color' }]);
       await expect(
-        service.createVariant(ecommerceId, productId, { sku: 'SKU-1', optionValueIds: [val1] }),
+        service.createVariant(ecommerceId, productId, {
+          sku: 'SKU-1',
+          price: 99.99,
+          optionValueIds: [val1],
+        }),
       ).rejects.toThrow('does not belong to this product');
 
       // Update variant - product missing
@@ -1136,6 +1242,239 @@ describe('CatalogService', () => {
       await expect(service.deleteVariant(ecommerceId, productId, varId)).rejects.toThrow(
         NotFoundError,
       );
+    });
+  });
+  describe('Units Reference', () => {
+    it('listUnits returns units with optional category filter', async () => {
+      mockRepo.findAllUnits.mockResolvedValueOnce([
+        { id: 'u1', name: 'Kilogram', category: 'Weight' },
+      ]);
+      const res = await service.listUnits('Weight');
+      expect(mockRepo.findAllUnits).toHaveBeenCalledWith('Weight');
+      expect(res).toHaveLength(1);
+    });
+
+    it('getUnit returns unit or throws NotFoundError', async () => {
+      mockRepo.findUnitById.mockResolvedValueOnce({ id: 'u1', name: 'Gram' });
+      const unit = await service.getUnit('u1');
+      expect(unit.name).toBe('Gram');
+
+      mockRepo.findUnitById.mockResolvedValueOnce(null);
+      await expect(service.getUnit('u-missing')).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  describe('Hero Banners Management', () => {
+    it('createBanner creates a new banner', async () => {
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.createBanner.mockResolvedValueOnce({
+        id: 'b1',
+        ecommerceId,
+        title: 'Sale',
+        displayOrder: 0,
+      });
+      const res = await service.createBanner(ecommerceId, {
+        title: 'Sale',
+        imageUrl: 'http://img.jpg',
+      });
+      expect(res.title).toBe('Sale');
+    });
+
+    it('getBanner returns banner or throws NotFoundError', async () => {
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.findBannerById.mockResolvedValueOnce({ id: 'b1', ecommerceId, title: 'Sale' });
+      const banner = await service.getBanner(ecommerceId, 'b1');
+      expect(banner.title).toBe('Sale');
+
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.findBannerById.mockResolvedValueOnce(null);
+      await expect(service.getBanner(ecommerceId, 'b-missing')).rejects.toThrow(NotFoundError);
+    });
+
+    it('listBanners returns active or all banners for ecommerce', async () => {
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.findBannersByEcommerce.mockResolvedValueOnce([
+        { id: 'b1', title: 'Sale', isActive: true },
+      ]);
+      const res = await service.listBanners(ecommerceId, true);
+      expect(mockRepo.findBannersByEcommerce).toHaveBeenCalledWith(ecommerceId, true);
+      expect(res).toHaveLength(1);
+    });
+
+    it('updateBanner updates banner or throws NotFoundError', async () => {
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.findBannerById.mockResolvedValueOnce({ id: 'b1', ecommerceId, title: 'Old Sale' });
+      mockRepo.updateBanner.mockResolvedValueOnce({ id: 'b1', ecommerceId, title: 'New Sale' });
+      const res = await service.updateBanner(ecommerceId, 'b1', { title: 'New Sale' });
+      expect(res.title).toBe('New Sale');
+
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.findBannerById.mockResolvedValueOnce(null);
+      await expect(service.updateBanner(ecommerceId, 'b-missing', { title: 'X' })).rejects.toThrow(
+        NotFoundError,
+      );
+    });
+
+    it('deleteBanner deletes banner or throws NotFoundError', async () => {
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.findBannerById.mockResolvedValueOnce({ id: 'b1', ecommerceId });
+      mockRepo.deleteBanner.mockResolvedValueOnce(undefined);
+      await service.deleteBanner(ecommerceId, 'b1');
+      expect(mockRepo.deleteBanner).toHaveBeenCalledWith(ecommerceId, 'b1');
+
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.findBannerById.mockResolvedValueOnce(null);
+      await expect(service.deleteBanner(ecommerceId, 'b-missing')).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  describe('Orders Management', () => {
+    it('createOrder creates order with coupon tracking', async () => {
+      mockRepo.findEcommerceById.mockResolvedValue({ id: ecommerceId });
+      mockRepo.getCouponByCode.mockResolvedValueOnce({
+        id: 'coup-1',
+        ecommerceId,
+        code: 'SAVE10',
+        discountType: 'PERCENTAGE',
+        discountValue: 10,
+        targetType: 'ALL_PRODUCTS',
+        isActive: true,
+      });
+      mockRepo.createOrder.mockResolvedValueOnce({
+        id: 'ORD-123',
+        ecommerceId,
+        total: 900,
+        couponCode: 'SAVE10',
+        couponDiscount: 100,
+      });
+
+      const order = await service.createOrder(ecommerceId, {
+        id: 'ORD-123',
+        customerName: 'Alice',
+        customerEmail: 'alice@example.com',
+        itemsCount: 1,
+        shippingAddress: {},
+        total: 900,
+        couponCode: 'SAVE10',
+        items: [
+          { id: 'it-1', pricing: { effectivePrice: 1000 }, quantity: 1, product: { id: 'p1' } },
+        ],
+      });
+
+      expect(order?.id).toBe('ORD-123');
+      expect(mockRepo.recordCouponUsage).toHaveBeenCalled();
+    });
+
+    it('listOrders returns all orders for store', async () => {
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.listOrders.mockResolvedValueOnce([{ id: 'ORD-1', total: 500 }]);
+      const orders = await service.listOrders(ecommerceId);
+      expect(orders).toHaveLength(1);
+    });
+
+    it('updateOrderStatus updates status or throws NotFoundError', async () => {
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.getOrderById.mockResolvedValueOnce({ id: 'ORD-1', status: 'PROCESSING' });
+      mockRepo.updateOrderStatus.mockResolvedValueOnce({ id: 'ORD-1', status: 'DELIVERED' });
+
+      const updated = await service.updateOrderStatus(ecommerceId, 'ORD-1', 'DELIVERED');
+      expect(updated?.status).toBe('DELIVERED');
+
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.updateOrderStatus.mockResolvedValueOnce(null);
+      await expect(
+        service.updateOrderStatus(ecommerceId, 'ORD-missing', 'DELIVERED'),
+      ).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  describe('Coupons Management CRUD', () => {
+    it('createCoupon creates coupon or throws ConflictError if code exists', async () => {
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.getCouponByCode.mockResolvedValueOnce(null);
+      mockRepo.createCoupon.mockResolvedValueOnce({ id: 'c1', code: 'DIWALI20', name: 'Diwali' });
+
+      const res = await service.createCoupon(ecommerceId, {
+        name: 'Diwali',
+        code: 'diwali20',
+        discountType: 'PERCENTAGE' as any,
+        discountValue: 20,
+        targetType: 'ALL_PRODUCTS' as any,
+      });
+      expect(res.code).toBe('DIWALI20');
+
+      // Duplicate conflict
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.getCouponByCode.mockResolvedValueOnce({ id: 'c1', code: 'DIWALI20' });
+      await expect(
+        service.createCoupon(ecommerceId, {
+          name: 'Diwali',
+          code: 'DIWALI20',
+          discountType: 'PERCENTAGE' as any,
+          discountValue: 20,
+          targetType: 'ALL_PRODUCTS' as any,
+        }),
+      ).rejects.toThrow(ConflictError);
+    });
+
+    it('getCoupon returns coupon or throws NotFoundError', async () => {
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.getCouponById.mockResolvedValueOnce({ id: 'c1', code: 'DIWALI20' });
+      const res = await service.getCouponById(ecommerceId, 'c1');
+      expect(res.code).toBe('DIWALI20');
+
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.getCouponById.mockResolvedValueOnce(null);
+      await expect(service.getCouponById(ecommerceId, 'c-missing')).rejects.toThrow(NotFoundError);
+    });
+
+    it('updateCoupon updates coupon or throws ConflictError on code collision', async () => {
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.getCouponById.mockResolvedValueOnce({ id: 'c1', code: 'OLDCODE' });
+      mockRepo.getCouponByCode.mockResolvedValueOnce(null);
+      mockRepo.updateCoupon.mockResolvedValueOnce({ id: 'c1', code: 'NEWCODE' });
+
+      const res = await service.updateCoupon(ecommerceId, 'c1', { code: 'NEWCODE' });
+      expect(res.code).toBe('NEWCODE');
+
+      // Code collision with another coupon
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.getCouponById.mockResolvedValueOnce({ id: 'c1', code: 'OLDCODE' });
+      mockRepo.getCouponByCode.mockResolvedValueOnce({ id: 'c2', code: 'OTHERCODE' });
+      await expect(service.updateCoupon(ecommerceId, 'c1', { code: 'OTHERCODE' })).rejects.toThrow(
+        ConflictError,
+      );
+    });
+
+    it('deleteCoupon deletes coupon or throws NotFoundError', async () => {
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.getCouponById.mockResolvedValueOnce({ id: 'c1' });
+      mockRepo.deleteCoupon.mockResolvedValueOnce(true);
+      await service.deleteCoupon(ecommerceId, 'c1');
+      expect(mockRepo.deleteCoupon).toHaveBeenCalledWith(ecommerceId, 'c1');
+
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.getCouponById.mockResolvedValueOnce(null);
+      await expect(service.deleteCoupon(ecommerceId, 'c-missing')).rejects.toThrow(NotFoundError);
+    });
+
+    it('listCoupons returns filtered coupons', async () => {
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.listCoupons.mockResolvedValueOnce([{ id: 'c1', code: 'CODE1' }]);
+      const list = await service.listCoupons(ecommerceId, { search: 'CODE' });
+      expect(list).toHaveLength(1);
+    });
+  });
+
+  describe('Customer Directory', () => {
+    it('listCustomers returns customer summaries', async () => {
+      mockRepo.findEcommerceById.mockResolvedValueOnce({ id: ecommerceId });
+      mockRepo.listCustomers.mockResolvedValueOnce([
+        { id: 'u1', name: 'John Doe', email: 'john@example.com', totalOrders: 2, totalSpent: 1200 },
+      ]);
+      const customers = await service.listCustomers(ecommerceId);
+      expect(customers).toHaveLength(1);
+      expect(customers[0]?.name).toBe('John Doe');
     });
   });
 });

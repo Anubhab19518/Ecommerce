@@ -1,4 +1,10 @@
-const { getSourceModule, extractImportPath, parseModuleImport } = require('../utils');
+const {
+  getSourceModule,
+  extractImportPath,
+  parseModuleImport,
+  createRuleMeta,
+  createImportRule,
+} = require('../utils');
 
 describe('ESLint Plugin Utils', () => {
   describe('getSourceModule', () => {
@@ -51,6 +57,53 @@ describe('ESLint Plugin Utils', () => {
 
     it('should return null if pattern does not match', () => {
       expect(parseModuleImport('../shared/logger')).toBeNull();
+    });
+  });
+
+  describe('createRuleMeta', () => {
+    it('should return standard ESLint rule meta object', () => {
+      const meta = createRuleMeta('Rule description', { msgKey: 'Error message' });
+      expect(meta.type).toBe('problem');
+      expect(meta.docs.description).toBe('Rule description');
+      expect(meta.docs.category).toBe('Architecture');
+      expect(meta.docs.recommended).toBe(true);
+      expect(meta.messages.msgKey).toBe('Error message');
+      expect(meta.schema).toEqual([]);
+    });
+  });
+
+  describe('createImportRule', () => {
+    it('should create an ESLint rule that checks ImportDeclaration and CallExpression', () => {
+      const checkImport = jest.fn();
+      const rule = createImportRule(checkImport);
+      const context = { filename: 'src/modules/user/user.controller.ts' };
+      const visitors = rule(context);
+
+      expect(typeof visitors.ImportDeclaration).toBe('function');
+      expect(typeof visitors.CallExpression).toBe('function');
+
+      const importNode = {
+        type: 'ImportDeclaration',
+        source: { value: '@modules/health' },
+      };
+      visitors.ImportDeclaration(importNode);
+      expect(checkImport).toHaveBeenCalledWith(context, importNode, '@modules/health', 'user');
+
+      const requireNode = {
+        type: 'CallExpression',
+        callee: { name: 'require' },
+        arguments: [{ type: 'Literal', value: '@modules/order' }],
+      };
+      visitors.CallExpression(requireNode);
+      expect(checkImport).toHaveBeenCalledWith(context, requireNode, '@modules/order', 'user');
+    });
+
+    it('should return empty visitors when not in a module', () => {
+      const checkImport = jest.fn();
+      const rule = createImportRule(checkImport);
+      const context = { filename: 'src/index.ts' };
+      const visitors = rule(context);
+      expect(visitors).toEqual({});
     });
   });
 });

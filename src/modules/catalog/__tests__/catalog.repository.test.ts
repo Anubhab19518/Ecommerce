@@ -1,3 +1,4 @@
+import { getSequelize } from '@infrastructure/database/connection';
 import { CatalogRepository } from '../catalog.repository';
 import {
   EcommerceModelDef,
@@ -8,6 +9,9 @@ import {
   ProductVariantModelDef,
   VariantOptionValueModelDef,
   UnitModelDef,
+  BannerModelDef,
+  CouponModelDef,
+  CouponUsageModelDef,
 } from '../models';
 
 jest.mock('@infrastructure/metrics/metrics', () => ({
@@ -80,6 +84,27 @@ jest.mock('../models', () => ({
   UnitModelDef: {
     findByPk: jest.fn(),
     findAll: jest.fn(),
+    create: jest.fn(),
+    destroy: jest.fn(),
+  },
+  BannerModelDef: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    destroy: jest.fn(),
+  },
+  CouponModelDef: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    destroy: jest.fn(),
+    increment: jest.fn(),
+  },
+  CouponUsageModelDef: {
+    create: jest.fn(),
+    count: jest.fn(),
   },
 }));
 
@@ -246,7 +271,11 @@ describe('CatalogRepository', () => {
 
     it('createProduct creates record', async () => {
       (ProductModelDef.create as jest.Mock).mockResolvedValue({ id: validUuid1, name: 'Phone' });
-      const res = await repo.createProduct(validUuid1, { name: 'Phone', slug: 'phone' });
+      const res = await repo.createProduct(validUuid1, {
+        name: 'Phone',
+        slug: 'phone',
+        price: 150,
+      });
       expect(res).toEqual({ id: validUuid1, name: 'Phone' });
     });
 
@@ -267,10 +296,22 @@ describe('CatalogRepository', () => {
     });
 
     it('deleteProduct destroys product', async () => {
+      // Mock cascade: findAll options -> destroy option values -> destroy variants -> destroy options -> destroy product
+      (ProductOptionModelDef.findAll as jest.Mock).mockResolvedValueOnce([
+        { id: 'opt-1' },
+        { id: 'opt-2' },
+      ]);
+      (ProductOptionValueModelDef.destroy as jest.Mock).mockResolvedValueOnce(3);
+      (ProductVariantModelDef.destroy as jest.Mock).mockResolvedValueOnce(2);
+      (ProductOptionModelDef.destroy as jest.Mock).mockResolvedValueOnce(2);
       (ProductModelDef.destroy as jest.Mock).mockResolvedValueOnce(1);
       const deleted = await repo.deleteProduct(validUuid1, validUuid2);
       expect(deleted).toBe(true);
 
+      // Case: product not found (0 rows destroyed), no options
+      (ProductOptionModelDef.findAll as jest.Mock).mockResolvedValueOnce([]);
+      (ProductVariantModelDef.destroy as jest.Mock).mockResolvedValueOnce(0);
+      (ProductOptionModelDef.destroy as jest.Mock).mockResolvedValueOnce(0);
       (ProductModelDef.destroy as jest.Mock).mockResolvedValueOnce(0);
       const notDeleted = await repo.deleteProduct(validUuid1, validUuid2);
       expect(notDeleted).toBe(false);
@@ -396,6 +437,7 @@ describe('CatalogRepository', () => {
 
       const variant = await repo.createProductVariant(validUuid1, {
         sku: 'SKU1',
+        price: 99.99,
         optionValueIds: [validUuid2, validUuid3],
       });
       expect(variant).toBeDefined();
@@ -454,6 +496,189 @@ describe('CatalogRepository', () => {
       const unit = await repo.findUnitById(validUuid1);
       expect(unit).toBeDefined();
       expect(unit?.name).toBe('Liter');
+    });
+  });
+  describe('Banner Operations', () => {
+    it('creates, reads, lists, updates, and deletes banners', async () => {
+      const mockBanner = {
+        id: validUuid1,
+        ecommerceId: validUuid1,
+        title: 'Hero Banner',
+        update: jest.fn().mockImplementation(function (this: any, vals: any) {
+          Object.assign(this, vals);
+          return Promise.resolve(this);
+        }),
+      };
+
+      (BannerModelDef.create as jest.Mock).mockResolvedValueOnce(mockBanner);
+      const created = await repo.createBanner(validUuid1, {
+        title: 'Hero Banner',
+        imageUrl: 'http://img.jpg',
+      });
+      expect(created).toBeDefined();
+
+      (BannerModelDef.findOne as jest.Mock).mockResolvedValueOnce(mockBanner);
+      const found = await repo.findBannerById(validUuid1, validUuid1);
+      expect(found?.title).toBe('Hero Banner');
+
+      (BannerModelDef.findAll as jest.Mock).mockResolvedValueOnce([mockBanner]);
+      const list = await repo.findBannersByEcommerce(validUuid1);
+      expect(list).toHaveLength(1);
+
+      (BannerModelDef.findOne as jest.Mock).mockResolvedValueOnce(mockBanner);
+      const updated = await repo.updateBanner(validUuid1, validUuid1, { title: 'Updated Banner' });
+      expect(updated?.title).toBe('Updated Banner');
+
+      (BannerModelDef.destroy as jest.Mock).mockResolvedValueOnce(1);
+      const deleted = await repo.deleteBanner(validUuid1, validUuid1);
+      expect(deleted).toBe(true);
+
+      (BannerModelDef.findOne as jest.Mock).mockResolvedValueOnce(null);
+      expect(await repo.updateBanner(validUuid1, 'b-missing', { title: 'X' })).toBeNull();
+
+      (BannerModelDef.destroy as jest.Mock).mockResolvedValueOnce(0);
+      expect(await repo.deleteBanner(validUuid1, 'b-missing')).toBe(false);
+    });
+  });
+
+  describe('Order Operations', () => {
+    it('creates order, lists orders, finds order by id, and updates order status', async () => {
+      const mockSeq = getSequelize();
+      // createOrder: 1) INSERT query, 2) getOrderById query
+      (mockSeq.query as jest.Mock).mockResolvedValueOnce([]);
+      (mockSeq.query as jest.Mock).mockResolvedValueOnce([
+        [{ id: 'ORD-123', ecommerce_id: validUuid1, total: 1000, status: 'PROCESSING' }],
+      ]);
+
+      const order = await repo.createOrder(validUuid1, {
+        id: 'ORD-123',
+        customerName: 'Bob',
+        customerEmail: 'bob@example.com',
+        itemsCount: 1,
+        total: 1000,
+        shippingAddress: {},
+        items: [{ id: '1', quantity: 1, pricing: { effectivePrice: 1000 } }],
+      });
+      expect(order?.id).toBe('ORD-123');
+
+      // listOrders: returns [records]
+      (mockSeq.query as jest.Mock).mockResolvedValueOnce([[{ id: 'ORD-123', total: 1000 }]]);
+      const orders = await repo.listOrders(validUuid1);
+      expect(orders).toHaveLength(1);
+
+      // getOrderById: returns [records]
+      (mockSeq.query as jest.Mock).mockResolvedValueOnce([[{ id: 'ORD-123', total: 1000 }]]);
+      const found = await repo.getOrderById(validUuid1, 'ORD-123');
+      expect(found?.id).toBe('ORD-123');
+
+      // updateOrderStatus: 1) UPDATE query, 2) getOrderById query
+      (mockSeq.query as jest.Mock).mockResolvedValueOnce([]);
+      (mockSeq.query as jest.Mock).mockResolvedValueOnce([
+        [{ id: 'ORD-123', status: 'DELIVERED' }],
+      ]);
+      const updated = await repo.updateOrderStatus(validUuid1, 'ORD-123', 'DELIVERED');
+      expect(updated?.status).toBe('DELIVERED');
+    });
+  });
+
+  describe('Coupon Operations', () => {
+    it('creates, finds by code/id, updates, and deletes coupons', async () => {
+      const mockCoupon = {
+        id: validUuid1,
+        ecommerceId: validUuid1,
+        code: 'SAVE20',
+        name: 'Save 20',
+        update: jest.fn().mockImplementation(function (this: any, vals: any) {
+          Object.assign(this, vals);
+          return Promise.resolve(this);
+        }),
+      };
+
+      (CouponModelDef.create as jest.Mock).mockResolvedValueOnce(mockCoupon);
+      const created = await repo.createCoupon(validUuid1, {
+        code: 'SAVE20',
+        name: 'Save 20',
+        discountType: 'PERCENTAGE' as any,
+        discountValue: 20,
+        targetType: 'ALL_PRODUCTS' as any,
+      });
+      expect(created).toBeDefined();
+
+      (CouponModelDef.findOne as jest.Mock).mockResolvedValueOnce(mockCoupon);
+      const foundByCode = await repo.getCouponByCode(validUuid1, 'save20');
+      expect(foundByCode?.code).toBe('SAVE20');
+
+      (CouponModelDef.findOne as jest.Mock).mockResolvedValueOnce(mockCoupon);
+      const foundById = await repo.getCouponById(validUuid1, validUuid1);
+      expect(foundById?.id).toBe(validUuid1);
+
+      (CouponModelDef.findOne as jest.Mock).mockResolvedValueOnce(mockCoupon);
+      const updated = await repo.updateCoupon(validUuid1, validUuid1, { name: 'Save 20 Updated' });
+      expect(updated?.name).toBe('Save 20 Updated');
+
+      (CouponModelDef.destroy as jest.Mock).mockResolvedValueOnce(1);
+      const deleted = await repo.deleteCoupon(validUuid1, validUuid1);
+      expect(deleted).toBe(true);
+
+      (CouponModelDef.findAll as jest.Mock).mockResolvedValueOnce([mockCoupon]);
+      const list = await repo.listCoupons(validUuid1, { search: 'SAVE', isActive: true });
+      expect(list).toHaveLength(1);
+    });
+
+    it('records coupon usage, checks limits and counts customer orders', async () => {
+      (CouponUsageModelDef.create as jest.Mock).mockResolvedValueOnce({ id: validUuid1 });
+      const mockSeq = getSequelize();
+      (mockSeq.query as jest.Mock).mockResolvedValueOnce([]);
+      await repo.recordCouponUsage(validUuid1, {
+        couponId: validUuid2,
+        orderId: 'ORD-123',
+        customerEmail: 'cust@example.com',
+        discountAmount: 200,
+      });
+      expect(CouponUsageModelDef.create).toHaveBeenCalled();
+      expect(mockSeq.query).toHaveBeenCalled();
+
+      (CouponUsageModelDef.count as jest.Mock).mockResolvedValueOnce(2);
+      const userCount = await repo.getCustomerCouponUsageCount(
+        validUuid1,
+        validUuid2,
+        'cust@example.com',
+      );
+      expect(userCount).toBe(2);
+
+      (mockSeq.query as jest.Mock).mockResolvedValueOnce([{ count: '3' }]);
+      const orderCount = await repo.getCustomerOrderCount(validUuid1, 'cust@example.com');
+      expect(orderCount).toBe(3);
+
+      (mockSeq.query as jest.Mock).mockResolvedValueOnce([
+        { id: 'cat-child' },
+        { id: 'cat-grandchild' },
+      ]);
+      const descCatIds = await repo.getDescendantCategoryIds(validUuid1, 'cat-root');
+      expect(descCatIds).toHaveLength(2);
+    });
+  });
+
+  describe('Customer Directory Query', () => {
+    it('aggregates customers from user accounts and order records', async () => {
+      const mockSeq = getSequelize();
+      (mockSeq.query as jest.Mock).mockResolvedValueOnce([
+        {
+          customerName: 'John Doe',
+          customerEmail: 'john@example.com',
+          customerPhone: '123',
+          totalOrders: '2',
+          totalSpent: '1500.00',
+          firstOrderDate: '2026-01-01',
+          lastOrderDate: '2026-08-01',
+        },
+      ]);
+
+      const customers = await repo.listCustomers(validUuid1);
+      expect(customers).toHaveLength(1);
+      expect(customers[0]?.name).toBe('John Doe');
+      expect(customers[0]?.totalOrders).toBe(2);
+      expect(customers[0]?.totalSpent).toBe(1500);
     });
   });
 });

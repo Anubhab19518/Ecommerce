@@ -1,5 +1,6 @@
 import { DataTypes, type Model, type Optional } from 'sequelize';
 import { getSequelize } from '@infrastructure/database/connection';
+import type { ProductDetailSection } from './product.model';
 
 const SCHEMA = 'catalog_module';
 
@@ -14,7 +15,9 @@ export interface ProductVariantAttributes {
   id: string;
   productId: string;
   sku: string;
-  price: number;
+  price: number | null;
+  offerPrice: number | null;
+  details: ProductDetailSection[] | null;
   quantity: number;
   status: VariantStatus;
   createdAt: Date;
@@ -23,7 +26,7 @@ export interface ProductVariantAttributes {
 
 export type ProductVariantCreationAttributes = Optional<
   ProductVariantAttributes,
-  'id' | 'price' | 'quantity' | 'status' | 'createdAt' | 'updatedAt'
+  'id' | 'price' | 'offerPrice' | 'details' | 'quantity' | 'status' | 'createdAt' | 'updatedAt'
 >;
 
 export type ProductVariantModel = Model<
@@ -58,13 +61,30 @@ export const ProductVariantModelDef = getSequelize().define<ProductVariantModel>
         return rawValue === null ? 0 : parseFloat(rawValue as unknown as string);
       },
     },
+    offerPrice: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      defaultValue: null,
+      field: 'offer_price',
+      get() {
+        const rawValue = this.getDataValue('offerPrice');
+        return rawValue === null || rawValue === undefined
+          ? null
+          : parseFloat(rawValue as unknown as string);
+      },
+    },
+    details: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: [],
+    },
     quantity: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
     },
     status: {
-      type: DataTypes.STRING(50),
+      type: DataTypes.ENUM(...Object.values(VariantStatus)),
       allowNull: false,
       defaultValue: VariantStatus.ACTIVE,
     },
@@ -72,11 +92,13 @@ export const ProductVariantModelDef = getSequelize().define<ProductVariantModel>
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'created_at',
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'updated_at',
     },
   },
   {
@@ -86,7 +108,7 @@ export const ProductVariantModelDef = getSequelize().define<ProductVariantModel>
   },
 );
 
-// ========================= VariantOptionValue (Join Table) =========================
+// ========================= VariantOptionValue (Junction) =========================
 
 export interface VariantOptionValueAttributes {
   variantId: string;
@@ -112,24 +134,24 @@ export const VariantOptionValueModelDef = getSequelize().define<VariantOptionVal
     variantId: {
       type: DataTypes.UUID,
       primaryKey: true,
-      allowNull: false,
       field: 'variant_id',
     },
     optionValueId: {
       type: DataTypes.UUID,
       primaryKey: true,
-      allowNull: false,
       field: 'option_value_id',
     },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'created_at',
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'updated_at',
     },
   },
   {

@@ -14,13 +14,16 @@ function getImportDeclPath(node) {
   return typeof val === 'string' ? val : null;
 }
 
-// fallow-ignore-next-line complexity
+function isRequireCall(node) {
+  return Boolean(
+    node && node.type === 'CallExpression' && node.callee && node.callee.name === 'require',
+  );
+}
+
 function getRequireCallPath(node) {
-  if (node.type !== 'CallExpression') return null;
-  if (node.callee?.name !== 'require') return null;
-  const arg = node.arguments?.[0];
-  if (!arg || arg.type !== 'Literal') return null;
-  return typeof arg.value === 'string' ? arg.value : null;
+  if (!isRequireCall(node)) return null;
+  const arg = node.arguments[0];
+  return Boolean(arg && arg.type === 'Literal' && typeof arg.value === 'string') ? arg.value : null;
 }
 
 function extractImportPath(node) {

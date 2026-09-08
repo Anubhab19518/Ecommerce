@@ -7,8 +7,8 @@ const config: Config = {
   setupFiles: ['<rootDir>/src/test-setup.ts'],
 
   // ---- File patterns ----
-  roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
+  roots: ['<rootDir>/src', '<rootDir>/tools'],
+  testMatch: ['**/__tests__/**/*.test.[jt]s', '**/*.test.[jt]s'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
 
   // ---- Path aliases (mirror tsconfig paths) ----
@@ -23,6 +23,7 @@ const config: Config = {
   // ---- Coverage ----
   collectCoverageFrom: [
     'src/**/*.ts',
+    'tools/eslint-plugin-modular-monolith/utils.js',
     '!src/**/*.d.ts',
     '!src/**/index.ts',
     '!src/infrastructure/database/migrations/**',

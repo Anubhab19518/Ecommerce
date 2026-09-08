@@ -54,66 +54,114 @@ module.exports = {
     );
 
     // Index on category for filtering
-    await queryInterface.addIndex(
-      { tableName: 'units', schema: SCHEMA },
-      ['category'],
-      { name: 'idx_units_category' },
-    );
+    await queryInterface.addIndex({ tableName: 'units', schema: SCHEMA }, ['category'], {
+      name: 'idx_units_category',
+    });
 
     // 2. Seed standard reference units
     const now = new Date();
     const standardUnits = [
-      { id: uuidv4(), name: 'Liter', symbol: 'L', category: 'Volume', created_at: now, updated_at: now },
-      { id: uuidv4(), name: 'Milliliter', symbol: 'ml', category: 'Volume', created_at: now, updated_at: now },
-      { id: uuidv4(), name: 'Kilogram', symbol: 'kg', category: 'Weight', created_at: now, updated_at: now },
-      { id: uuidv4(), name: 'Gram', symbol: 'g', category: 'Weight', created_at: now, updated_at: now },
-      { id: uuidv4(), name: 'Piece', symbol: 'pcs', category: 'Count', created_at: now, updated_at: now },
-      { id: uuidv4(), name: 'Meter', symbol: 'm', category: 'Length', created_at: now, updated_at: now },
-      { id: uuidv4(), name: 'Centimeter', symbol: 'cm', category: 'Length', created_at: now, updated_at: now },
-      { id: uuidv4(), name: 'Pack', symbol: 'pack', category: 'Packaging', created_at: now, updated_at: now },
-      { id: uuidv4(), name: 'Bottle', symbol: 'bottle', category: 'Packaging', created_at: now, updated_at: now },
+      {
+        id: uuidv4(),
+        name: 'Liter',
+        symbol: 'L',
+        category: 'Volume',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: uuidv4(),
+        name: 'Milliliter',
+        symbol: 'ml',
+        category: 'Volume',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: uuidv4(),
+        name: 'Kilogram',
+        symbol: 'kg',
+        category: 'Weight',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: uuidv4(),
+        name: 'Gram',
+        symbol: 'g',
+        category: 'Weight',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: uuidv4(),
+        name: 'Piece',
+        symbol: 'pcs',
+        category: 'Count',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: uuidv4(),
+        name: 'Meter',
+        symbol: 'm',
+        category: 'Length',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: uuidv4(),
+        name: 'Centimeter',
+        symbol: 'cm',
+        category: 'Length',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: uuidv4(),
+        name: 'Pack',
+        symbol: 'pack',
+        category: 'Packaging',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: uuidv4(),
+        name: 'Bottle',
+        symbol: 'bottle',
+        category: 'Packaging',
+        created_at: now,
+        updated_at: now,
+      },
     ];
 
-    await queryInterface.bulkInsert(
-      { tableName: 'units', schema: SCHEMA },
-      standardUnits,
-    );
+    await queryInterface.bulkInsert({ tableName: 'units', schema: SCHEMA }, standardUnits);
 
     // 3. Add unit_id to product_options with ON DELETE RESTRICT
-    await queryInterface.addColumn(
-      { tableName: 'product_options', schema: SCHEMA },
-      'unit_id',
-      {
-        type: Sequelize.UUID,
-        allowNull: true,
-        references: {
-          model: { tableName: 'units', schema: SCHEMA },
-          key: 'id',
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT',
+    await queryInterface.addColumn({ tableName: 'product_options', schema: SCHEMA }, 'unit_id', {
+      type: Sequelize.UUID,
+      allowNull: true,
+      references: {
+        model: { tableName: 'units', schema: SCHEMA },
+        key: 'id',
       },
-    );
+      onUpdate: 'CASCADE',
+      onDelete: 'RESTRICT',
+    });
 
     // Index on product_options.unit_id
-    await queryInterface.addIndex(
-      { tableName: 'product_options', schema: SCHEMA },
-      ['unit_id'],
-      { name: 'idx_product_options_unit_id' },
-    );
+    await queryInterface.addIndex({ tableName: 'product_options', schema: SCHEMA }, ['unit_id'], {
+      name: 'idx_product_options_unit_id',
+    });
   },
 
   async down(queryInterface) {
     // 1. Remove column and index from product_options
-    await queryInterface.removeIndex(
-      { tableName: 'product_options', schema: SCHEMA },
-      'idx_product_options_unit_id',
-    ).catch(() => {});
+    await queryInterface
+      .removeIndex({ tableName: 'product_options', schema: SCHEMA }, 'idx_product_options_unit_id')
+      .catch(() => {});
 
-    await queryInterface.removeColumn(
-      { tableName: 'product_options', schema: SCHEMA },
-      'unit_id',
-    );
+    await queryInterface.removeColumn({ tableName: 'product_options', schema: SCHEMA }, 'unit_id');
 
     // 2. Drop units table
     await queryInterface.dropTable({ tableName: 'units', schema: SCHEMA });

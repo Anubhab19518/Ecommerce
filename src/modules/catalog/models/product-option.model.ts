@@ -8,7 +8,6 @@ const SCHEMA = 'catalog_module';
 export interface ProductOptionAttributes {
   id: string;
   productId: string;
-  unitId: string | null;
   name: string;
   displayOrder: number;
   createdAt: Date;
@@ -17,7 +16,7 @@ export interface ProductOptionAttributes {
 
 export type ProductOptionCreationAttributes = Optional<
   ProductOptionAttributes,
-  'id' | 'unitId' | 'displayOrder' | 'createdAt' | 'updatedAt'
+  'id' | 'displayOrder' | 'createdAt' | 'updatedAt'
 >;
 
 export type ProductOptionModel = Model<ProductOptionAttributes, ProductOptionCreationAttributes> &
@@ -35,11 +34,6 @@ export const ProductOptionModelDef = getSequelize().define<ProductOptionModel>(
       type: DataTypes.UUID,
       allowNull: false,
       field: 'product_id',
-    },
-    unitId: {
-      type: DataTypes.UUID,
-      allowNull: true,
-      field: 'unit_id',
     },
     name: {
       type: DataTypes.STRING(100),
@@ -74,6 +68,7 @@ export const ProductOptionModelDef = getSequelize().define<ProductOptionModel>(
 export interface ProductOptionValueAttributes {
   id: string;
   productOptionId: string;
+  unitId: string | null;
   value: string;
   displayOrder: number;
   createdAt: Date;
@@ -82,7 +77,7 @@ export interface ProductOptionValueAttributes {
 
 export type ProductOptionValueCreationAttributes = Optional<
   ProductOptionValueAttributes,
-  'id' | 'displayOrder' | 'createdAt' | 'updatedAt'
+  'id' | 'unitId' | 'displayOrder' | 'createdAt' | 'updatedAt'
 >;
 
 export type ProductOptionValueModel = Model<
@@ -103,6 +98,11 @@ export const ProductOptionValueModelDef = getSequelize().define<ProductOptionVal
       type: DataTypes.UUID,
       allowNull: false,
       field: 'product_option_id',
+    },
+    unitId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'unit_id',
     },
     value: {
       type: DataTypes.STRING(100),

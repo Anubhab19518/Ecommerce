@@ -75,23 +75,18 @@ module.exports = {
       },
     );
 
-    await queryInterface.addIndex(
-      { tableName: 'roles', schema: SCHEMA },
-      ['name'],
-      { unique: true, name: 'idx_authz_roles_name_unique' },
-    );
+    await queryInterface.addIndex({ tableName: 'roles', schema: SCHEMA }, ['name'], {
+      unique: true,
+      name: 'idx_authz_roles_name_unique',
+    });
 
-    await queryInterface.addIndex(
-      { tableName: 'roles', schema: SCHEMA },
-      ['parent_role_id'],
-      { name: 'idx_authz_roles_parent_role_id' },
-    );
+    await queryInterface.addIndex({ tableName: 'roles', schema: SCHEMA }, ['parent_role_id'], {
+      name: 'idx_authz_roles_parent_role_id',
+    });
 
-    await queryInterface.addIndex(
-      { tableName: 'roles', schema: SCHEMA },
-      ['is_active'],
-      { name: 'idx_authz_roles_is_active' },
-    );
+    await queryInterface.addIndex({ tableName: 'roles', schema: SCHEMA }, ['is_active'], {
+      name: 'idx_authz_roles_is_active',
+    });
 
     // ─────────────────────────── 2. permissions ───────────────────────────
 
@@ -156,11 +151,9 @@ module.exports = {
       { name: 'idx_authz_permissions_action_subject' },
     );
 
-    await queryInterface.addIndex(
-      { tableName: 'permissions', schema: SCHEMA },
-      ['is_active'],
-      { name: 'idx_authz_permissions_is_active' },
-    );
+    await queryInterface.addIndex({ tableName: 'permissions', schema: SCHEMA }, ['is_active'], {
+      name: 'idx_authz_permissions_is_active',
+    });
 
     // ─────────────────────────── 3. role_permissions ───────────────────────────
 
@@ -253,23 +246,17 @@ module.exports = {
       { unique: true, name: 'idx_authz_user_roles_unique' },
     );
 
-    await queryInterface.addIndex(
-      { tableName: 'user_roles', schema: SCHEMA },
-      ['user_id'],
-      { name: 'idx_authz_user_roles_user_id' },
-    );
+    await queryInterface.addIndex({ tableName: 'user_roles', schema: SCHEMA }, ['user_id'], {
+      name: 'idx_authz_user_roles_user_id',
+    });
 
-    await queryInterface.addIndex(
-      { tableName: 'user_roles', schema: SCHEMA },
-      ['role_id'],
-      { name: 'idx_authz_user_roles_role_id' },
-    );
+    await queryInterface.addIndex({ tableName: 'user_roles', schema: SCHEMA }, ['role_id'], {
+      name: 'idx_authz_user_roles_role_id',
+    });
 
-    await queryInterface.addIndex(
-      { tableName: 'user_roles', schema: SCHEMA },
-      ['expires_at'],
-      { name: 'idx_authz_user_roles_expires_at' },
-    );
+    await queryInterface.addIndex({ tableName: 'user_roles', schema: SCHEMA }, ['expires_at'], {
+      name: 'idx_authz_user_roles_expires_at',
+    });
 
     // ─────────────────────────── 5. permission_conditions ───────────────────────────
 

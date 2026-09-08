@@ -17,3 +17,18 @@ datasources:
     editable: false
     jsonData:
       maxLines: 1000
+
+  - name: PostgreSQL
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    user: appuser
+    secureJsonData:
+      password: apppassword
+    jsonData:
+      database: app
+      sslmode: disable
+      maxOpenConns: 5
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+      postgresVersion: 1500

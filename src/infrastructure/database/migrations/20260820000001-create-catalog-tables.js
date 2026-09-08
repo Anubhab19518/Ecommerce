@@ -61,11 +61,10 @@ module.exports = {
       },
     );
 
-    await queryInterface.addIndex(
-      { tableName: 'ecommerce', schema: SCHEMA },
-      ['slug'],
-      { unique: true, name: 'idx_catalog_ecommerce_slug_unique' },
-    );
+    await queryInterface.addIndex({ tableName: 'ecommerce', schema: SCHEMA }, ['slug'], {
+      unique: true,
+      name: 'idx_catalog_ecommerce_slug_unique',
+    });
 
     // 2. categories
     await queryInterface.createTable(
@@ -131,16 +130,12 @@ module.exports = {
       ['ecommerce_id', 'slug'],
       { unique: true, name: 'idx_catalog_categories_ecommerce_slug_unique' },
     );
-    await queryInterface.addIndex(
-      { tableName: 'categories', schema: SCHEMA },
-      ['ecommerce_id'],
-      { name: 'idx_catalog_categories_ecommerce_id' },
-    );
-    await queryInterface.addIndex(
-      { tableName: 'categories', schema: SCHEMA },
-      ['parent_id'],
-      { name: 'idx_catalog_categories_parent_id' },
-    );
+    await queryInterface.addIndex({ tableName: 'categories', schema: SCHEMA }, ['ecommerce_id'], {
+      name: 'idx_catalog_categories_ecommerce_id',
+    });
+    await queryInterface.addIndex({ tableName: 'categories', schema: SCHEMA }, ['parent_id'], {
+      name: 'idx_catalog_categories_parent_id',
+    });
 
     // 3. products
     await queryInterface.createTable(
@@ -181,7 +176,7 @@ module.exports = {
         price: {
           type: Sequelize.DECIMAL(12, 2),
           allowNull: false,
-          defaultValue: 0.00,
+          defaultValue: 0.0,
         },
         quantity: {
           type: Sequelize.INTEGER,
@@ -216,21 +211,15 @@ module.exports = {
       ['ecommerce_id', 'slug'],
       { unique: true, name: 'idx_catalog_products_ecommerce_slug_unique' },
     );
-    await queryInterface.addIndex(
-      { tableName: 'products', schema: SCHEMA },
-      ['ecommerce_id'],
-      { name: 'idx_catalog_products_ecommerce_id' },
-    );
-    await queryInterface.addIndex(
-      { tableName: 'products', schema: SCHEMA },
-      ['category_id'],
-      { name: 'idx_catalog_products_category_id' },
-    );
-    await queryInterface.addIndex(
-      { tableName: 'products', schema: SCHEMA },
-      ['status'],
-      { name: 'idx_catalog_products_status' },
-    );
+    await queryInterface.addIndex({ tableName: 'products', schema: SCHEMA }, ['ecommerce_id'], {
+      name: 'idx_catalog_products_ecommerce_id',
+    });
+    await queryInterface.addIndex({ tableName: 'products', schema: SCHEMA }, ['category_id'], {
+      name: 'idx_catalog_products_category_id',
+    });
+    await queryInterface.addIndex({ tableName: 'products', schema: SCHEMA }, ['status'], {
+      name: 'idx_catalog_products_status',
+    });
 
     // 4. product_options
     await queryInterface.createTable(
@@ -346,7 +335,7 @@ module.exports = {
         price: {
           type: Sequelize.DECIMAL(12, 2),
           allowNull: false,
-          defaultValue: 0.00,
+          defaultValue: 0.0,
         },
         quantity: {
           type: Sequelize.INTEGER,

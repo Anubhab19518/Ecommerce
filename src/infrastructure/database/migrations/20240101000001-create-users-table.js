@@ -47,11 +47,10 @@ module.exports = {
     );
 
     // Indexes for common query patterns
-    await queryInterface.addIndex(
-      { tableName: 'users', schema: 'user_module' },
-      ['email'],
-      { unique: true, name: 'idx_users_email_unique' },
-    );
+    await queryInterface.addIndex({ tableName: 'users', schema: 'user_module' }, ['email'], {
+      unique: true,
+      name: 'idx_users_email_unique',
+    });
   },
 
   async down(queryInterface) {

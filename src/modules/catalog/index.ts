@@ -16,7 +16,14 @@ export { catalogRoutes } from './catalog.routes';
 export { catalogTenantGuard, type CatalogRequest } from './catalog.tenant-guard';
 
 // Enums & Public Types
-export { EcommerceStatus, ProductStatus, VariantStatus } from './models';
+export {
+  EcommerceStatus,
+  ProductStatus,
+  VariantStatus,
+  CouponDiscountType,
+  CouponTargetType,
+  UserBehaviorRuleType,
+} from './models';
 export type {
   CreateEcommerceInput,
   UpdateEcommerceInput,
@@ -31,5 +38,13 @@ export type {
   CreateProductVariantInput,
   UpdateProductVariantInput,
   UnitQueryInput,
+  CreateBannerInput,
+  UpdateBannerInput,
+  CreateCouponInput,
+  UpdateCouponInput,
+  ValidateCouponInput,
+  CouponQueryInput,
 } from './catalog.validator';
 export { unitQuerySchema } from './catalog.validator';
+export type { CouponEvaluationResult } from './catalog.service';
+export type { CustomerSummary, CreateOrderInput, OrderRecord } from './catalog.repository';

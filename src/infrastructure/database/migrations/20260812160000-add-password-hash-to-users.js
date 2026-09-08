@@ -9,14 +9,10 @@
 /** @type {import('sequelize').QueryInterface} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn(
-      { tableName: 'users', schema: 'user_module' },
-      'password_hash',
-      {
-        type: Sequelize.STRING(255),
-        allowNull: true,
-      },
-    );
+    await queryInterface.addColumn({ tableName: 'users', schema: 'user_module' }, 'password_hash', {
+      type: Sequelize.STRING(255),
+      allowNull: true,
+    });
   },
 
   async down(queryInterface) {

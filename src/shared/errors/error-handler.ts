@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import { MulterError } from 'multer';
 import { ZodError } from 'zod';
 import { logger } from '@infrastructure/logging/logger';
 import { AppError } from './app-error';
@@ -8,6 +9,23 @@ import { AppError } from './app-error';
  * Must be registered AFTER all routes.
  */
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
+  if (err instanceof MulterError) {
+    let message = `File upload error: ${err.message}`;
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      message = 'File size exceeds maximum allowed limit (25MB)';
+    } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      message = `Unexpected upload field. Please use "images" for product/variant photos or "image" for banners`;
+    }
+
+    res.status(400).json({
+      status: 'error',
+      message,
+      code: 'FILE_UPLOAD_ERROR',
+      requestId: req.headers['x-request-id'] ?? undefined,
+    });
+    return;
+  }
+
   if (err instanceof ZodError) {
     const firstIssue = err.errors[0];
     const message = firstIssue?.message ?? 'Validation error';

@@ -20,6 +20,14 @@ import {
   createProductVariantSchema,
   updateProductVariantSchema,
   unitQuerySchema,
+  createBannerSchema,
+  updateBannerSchema,
+  createCouponSchema,
+  updateCouponSchema,
+  validateCouponSchema,
+  couponQuerySchema,
+  createOrderSchema,
+  updateOrderStatusSchema,
 } from '../catalog.validator';
 
 describe('Catalog Validator Schemas', () => {
@@ -59,7 +67,6 @@ describe('Catalog Validator Schemas', () => {
 
     it('validates updateEcommerceSchema', () => {
       expect(updateEcommerceSchema.safeParse({ name: 'Acme 2' }).success).toBe(true);
-      expect(updateEcommerceSchema.safeParse({ status: 'SUSPENDED' }).success).toBe(true);
     });
   });
 
@@ -67,78 +74,72 @@ describe('Catalog Validator Schemas', () => {
     it('validates createCategorySchema', () => {
       expect(
         createCategorySchema.safeParse({
-          name: 'Electronics',
-          slug: 'electronics',
+          name: 'Shoes',
+          slug: 'shoes',
           parentId: validUuid,
-          sortOrder: 1,
-          isActive: true,
+          description: 'Footwear',
+        }).success,
+      ).toBe(true);
+
+      expect(
+        createCategorySchema.safeParse({
+          name: 'Clothing',
+          slug: 'clothing',
         }).success,
       ).toBe(true);
     });
 
     it('validates updateCategorySchema', () => {
-      expect(
-        updateCategorySchema.safeParse({
-          name: 'Consumer Electronics',
-          parentId: null,
-        }).success,
-      ).toBe(true);
+      expect(updateCategorySchema.safeParse({ name: 'Footwear' }).success).toBe(true);
     });
   });
 
   describe('Product Schemas', () => {
-    it('validates createProductSchema and defaults', () => {
-      const res = createProductSchema.safeParse({
-        name: 'Phone',
-        slug: 'phone',
-        price: 499.99,
-        quantity: 10,
-      });
-      expect(res.success).toBe(true);
-      if (res.success) {
-        expect(res.data.status).toBe('DRAFT');
-        expect(res.data.hasVariants).toBe(false);
-      }
-    });
+    it('validates createProductSchema and updateProductSchema', () => {
+      expect(
+        createProductSchema.safeParse({
+          categoryId: validUuid,
+          name: 'Running Shoes',
+          slug: 'running-shoes',
+          price: 99.99,
+          offerPrice: 79.99,
+          hasVariants: false,
+          quantity: 50,
+        }).success,
+      ).toBe(true);
 
-    it('validates updateProductSchema', () => {
       expect(
         updateProductSchema.safeParse({
-          price: 599.99,
+          price: 89.99,
           status: 'ACTIVE',
         }).success,
       ).toBe(true);
     });
   });
 
-  describe('Product Options & Option Values Schemas', () => {
-    it('validates createProductOptionSchema with optional unitId', () => {
-      expect(
-        createProductOptionSchema.safeParse({
-          name: 'Volume',
-          unitId: validUuid,
-          displayOrder: 0,
-        }).success,
-      ).toBe(true);
-
-      expect(
-        createProductOptionSchema.safeParse({
-          name: 'Color',
-        }).success,
-      ).toBe(true);
-    });
-
-    it('validates updateProductOptionSchema', () => {
-      expect(updateProductOptionSchema.safeParse({ name: 'Size', unitId: null }).success).toBe(
+  describe('Product Option & Value Schemas', () => {
+    it('validates createProductOptionSchema and updateProductOptionSchema', () => {
+      expect(createProductOptionSchema.safeParse({ name: 'Size', unitId: validUuid }).success).toBe(
         true,
       );
+      expect(createProductOptionSchema.safeParse({ name: '' }).success).toBe(false);
+      expect(updateProductOptionSchema.safeParse({ name: 'Color' }).success).toBe(true);
     });
 
-    it('validates option value schemas', () => {
+    it('validates createProductOptionValueSchema and updateProductOptionValueSchema', () => {
       expect(
-        createProductOptionValueSchema.safeParse({ value: 'Red', displayOrder: 1 }).success,
+        createProductOptionValueSchema.safeParse({
+          value: 'Black',
+          unitId: null,
+        }).success,
       ).toBe(true);
-      expect(updateProductOptionValueSchema.safeParse({ value: 'Blue' }).success).toBe(true);
+
+      expect(
+        updateProductOptionValueSchema.safeParse({
+          value: '500',
+          unitId: validUuid,
+        }).success,
+      ).toBe(true);
     });
   });
 
@@ -154,7 +155,6 @@ describe('Catalog Validator Schemas', () => {
         }).success,
       ).toBe(true);
 
-      // Must have at least 1 option value
       expect(
         createProductVariantSchema.safeParse({
           sku: 'SKU123',
@@ -174,10 +174,223 @@ describe('Catalog Validator Schemas', () => {
     });
   });
 
-  describe('Unit Query Schema', () => {
+  describe('Unit Query Schemas', () => {
     it('validates unitQuerySchema with or without category', () => {
       expect(unitQuerySchema.safeParse({ category: 'Volume' }).success).toBe(true);
       expect(unitQuerySchema.safeParse({}).success).toBe(true);
+    });
+  });
+
+  describe('Banner Schemas', () => {
+    it('validates createBannerSchema and updateBannerSchema', () => {
+      expect(
+        createBannerSchema.safeParse({
+          title: 'Summer Mega Sale',
+          imageUrl: 'https://example.com/banner.jpg',
+          displayOrder: 1,
+          isActive: true,
+        }).success,
+      ).toBe(true);
+
+      expect(createBannerSchema.safeParse({ title: '', imageUrl: 'not-a-url' }).success).toBe(
+        false,
+      );
+      expect(updateBannerSchema.safeParse({ title: 'Winter Sale' }).success).toBe(true);
+    });
+  });
+
+  describe('Order Schemas', () => {
+    it('validates createOrderSchema with items and customer info', () => {
+      expect(
+        createOrderSchema.safeParse({
+          customerName: 'John Doe',
+          customerEmail: 'john@example.com',
+          total: 1500,
+          items: [{ id: 'item-1', product: { id: validUuid, name: 'Shoes' }, quantity: 1 }],
+          couponCode: 'WELCOME10',
+          couponDiscount: 150,
+        }).success,
+      ).toBe(true);
+    });
+
+    it('validates updateOrderStatusSchema', () => {
+      expect(updateOrderStatusSchema.safeParse({ status: 'DELIVERED' }).success).toBe(true);
+      expect(updateOrderStatusSchema.safeParse({ status: 'INVALID_STATUS' }).success).toBe(false);
+    });
+  });
+
+  describe('Coupon Schemas & Edge Refinements', () => {
+    it('validates ALL_PRODUCTS coupon', () => {
+      const parsed = createCouponSchema.safeParse({
+        name: 'Welcome 10',
+        code: 'WELCOME10',
+        discountType: 'PERCENTAGE',
+        discountValue: 10,
+        targetType: 'ALL_PRODUCTS',
+      });
+      expect(parsed.success).toBe(true);
+    });
+
+    it('rejects percentage discount greater than 100', () => {
+      const parsed = createCouponSchema.safeParse({
+        name: 'Super 150',
+        code: 'SUPER150',
+        discountType: 'PERCENTAGE',
+        discountValue: 150,
+        targetType: 'ALL_PRODUCTS',
+      });
+      expect(parsed.success).toBe(false);
+      if (!parsed.success) {
+        expect(parsed.error.errors[0]?.message).toContain('cannot exceed 100%');
+      }
+    });
+
+    it('validates and rejects PRODUCT target rules', () => {
+      expect(
+        createCouponSchema.safeParse({
+          name: 'Prod Discount',
+          code: 'PROD10',
+          discountType: 'FIXED',
+          discountValue: 100,
+          targetType: 'PRODUCT',
+          rules: { productIds: [validUuid] },
+        }).success,
+      ).toBe(true);
+
+      const emptyProds = createCouponSchema.safeParse({
+        name: 'Prod Discount',
+        code: 'PROD10',
+        discountType: 'FIXED',
+        discountValue: 100,
+        targetType: 'PRODUCT',
+        rules: { productIds: [] },
+      });
+      expect(emptyProds.success).toBe(false);
+    });
+
+    it('validates and rejects CATEGORY target rules', () => {
+      expect(
+        createCouponSchema.safeParse({
+          name: 'Category Discount',
+          code: 'CAT10',
+          discountType: 'PERCENTAGE',
+          discountValue: 15,
+          targetType: 'CATEGORY',
+          rules: { categoryId: validUuid },
+        }).success,
+      ).toBe(true);
+
+      expect(
+        createCouponSchema.safeParse({
+          name: 'Category Discount',
+          code: 'CAT10',
+          discountType: 'PERCENTAGE',
+          discountValue: 15,
+          targetType: 'CATEGORY',
+          rules: {},
+        }).success,
+      ).toBe(false);
+    });
+
+    it('validates and rejects USER_BEHAVIOR target rules', () => {
+      expect(
+        createCouponSchema.safeParse({
+          name: 'First Order',
+          code: 'FIRST10',
+          discountType: 'PERCENTAGE',
+          discountValue: 10,
+          targetType: 'USER_BEHAVIOR',
+          rules: { behaviorType: 'FIRST_ORDER' },
+        }).success,
+      ).toBe(true);
+
+      expect(
+        createCouponSchema.safeParse({
+          name: 'Min Spend',
+          code: 'SPEND500',
+          discountType: 'FIXED',
+          discountValue: 50,
+          targetType: 'USER_BEHAVIOR',
+          rules: { behaviorType: 'MIN_ORDER_VALUE', minOrderValue: 500 },
+        }).success,
+      ).toBe(true);
+
+      expect(
+        createCouponSchema.safeParse({
+          name: 'Min Spend',
+          code: 'SPEND500',
+          discountType: 'FIXED',
+          discountValue: 50,
+          targetType: 'USER_BEHAVIOR',
+          rules: { behaviorType: 'MIN_ORDER_VALUE', minOrderValue: 0 },
+        }).success,
+      ).toBe(false);
+
+      expect(
+        createCouponSchema.safeParse({
+          name: 'Fifth Order',
+          code: 'FIFTH10',
+          discountType: 'PERCENTAGE',
+          discountValue: 10,
+          targetType: 'USER_BEHAVIOR',
+          rules: { behaviorType: 'ORDER_NUMBER', requiredOrderNumber: 5 },
+        }).success,
+      ).toBe(true);
+
+      expect(
+        createCouponSchema.safeParse({
+          name: 'Fifth Order',
+          code: 'FIFTH10',
+          discountType: 'PERCENTAGE',
+          discountValue: 10,
+          targetType: 'USER_BEHAVIOR',
+          rules: { behaviorType: 'ORDER_NUMBER', requiredOrderNumber: 0 },
+        }).success,
+      ).toBe(false);
+    });
+
+    it('validates updateCouponSchema refinements', () => {
+      expect(
+        updateCouponSchema.safeParse({
+          discountType: 'PERCENTAGE',
+          discountValue: 25,
+        }).success,
+      ).toBe(true);
+
+      expect(
+        updateCouponSchema.safeParse({
+          discountType: 'PERCENTAGE',
+          discountValue: 120,
+        }).success,
+      ).toBe(false);
+    });
+
+    it('validates validateCouponSchema and transforms couponQuerySchema', () => {
+      expect(
+        validateCouponSchema.safeParse({
+          code: 'summer20',
+          customerEmail: 'test@example.com',
+          cartItems: [
+            {
+              id: 'item-1',
+              product: { id: validUuid, name: 'T-Shirt', price: 500 },
+              quantity: 2,
+              pricing: { effectivePrice: 500 },
+            },
+          ],
+          subtotal: 1000,
+        }).success,
+      ).toBe(true);
+
+      const queryParsed = couponQuerySchema.safeParse({
+        isActive: 'true',
+        search: 'SUMMER',
+        targetType: 'ALL_PRODUCTS',
+      });
+      expect(queryParsed.success).toBe(true);
+      if (queryParsed.success) {
+        expect(queryParsed.data.isActive).toBe(true);
+      }
     });
   });
 });

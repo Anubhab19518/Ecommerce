@@ -23,18 +23,33 @@ Provides dynamic multi-option product matrix definitions (e.g. Color, Size, Stor
     {
       "id": "opt-11111111-1111-4111-8111-111111111111",
       "productId": "prod-11111111-1111-4111-8111-111111111111",
-      "name": "Volume",
-      "unitId": "unit-liter-uuid",
+      "name": "Weight",
       "displayOrder": 0,
-      "unit": {
-        "id": "unit-liter-uuid",
-        "name": "Liter",
-        "symbol": "L",
-        "category": "Volume"
-      },
       "values": [
-        { "id": "val-1", "value": "0.5", "displayOrder": 0 },
-        { "id": "val-2", "value": "1", "displayOrder": 1 }
+        {
+          "id": "val-1",
+          "value": "250",
+          "unitId": "unit-gram-uuid",
+          "displayOrder": 0,
+          "unit": {
+            "id": "unit-gram-uuid",
+            "name": "Gram",
+            "symbol": "g",
+            "category": "Weight"
+          }
+        },
+        {
+          "id": "val-2",
+          "value": "1",
+          "unitId": "unit-kg-uuid",
+          "displayOrder": 1,
+          "unit": {
+            "id": "unit-kg-uuid",
+            "name": "Kilogram",
+            "symbol": "kg",
+            "category": "Weight"
+          }
+        }
       ]
     }
   ]
@@ -47,14 +62,12 @@ Provides dynamic multi-option product matrix definitions (e.g. Color, Size, Stor
 - **Request Body**:
 ```json
 {
-  "name": "Volume",
-  "unitId": "11111111-1111-4111-8111-111111111111",
+  "name": "Weight",
   "displayOrder": 0
 }
 ```
 - **Fields**:
   - `name` (string, 1-100 chars, required, unique per product)
-  - `unitId` (UUID or null, optional): Reference to `catalog_module.units(id)`
   - `displayOrder` (integer, optional, default: 0)
 - **Success Response**: `201 Created`
 
@@ -64,8 +77,7 @@ Provides dynamic multi-option product matrix definitions (e.g. Color, Size, Stor
 - **Request Body**:
 ```json
 {
-  "name": "Container Volume",
-  "unitId": "11111111-1111-4111-8111-111111111111"
+  "name": "Package Weight"
 }
 ```
 - **Success Response**: `200 OK`
@@ -85,10 +97,15 @@ Provides dynamic multi-option product matrix definitions (e.g. Color, Size, Stor
 - **Request Body**:
 ```json
 {
-  "value": "2.5",
-  "displayOrder": 2
+  "value": "250",
+  "unitId": "11111111-1111-4111-8111-111111111111",
+  "displayOrder": 0
 }
 ```
+- **Fields**:
+  - `value` (string, 1-100 chars, required)
+  - `unitId` (UUID or null, optional): Reference to `catalog_module.units(id)`
+  - `displayOrder` (integer, optional, default: 0)
 - **Success Response**: `201 Created`
 
 #### Update Option Value
@@ -97,7 +114,8 @@ Provides dynamic multi-option product matrix definitions (e.g. Color, Size, Stor
 - **Request Body**:
 ```json
 {
-  "value": "3.0"
+  "value": "500",
+  "unitId": "11111111-1111-4111-8111-111111111111"
 }
 ```
 - **Success Response**: `200 OK`
