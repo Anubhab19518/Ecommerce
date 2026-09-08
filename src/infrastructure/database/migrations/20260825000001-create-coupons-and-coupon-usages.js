@@ -64,7 +64,34 @@ module.exports = {
         { transaction }
       );
 
-      // 3. Add coupon audit columns to catalog_module.orders if not exists
+      // 3. Create catalog_module.orders if not exists
+      await queryInterface.sequelize.query(
+        `CREATE TABLE IF NOT EXISTS catalog_module.orders (
+          id VARCHAR(255) PRIMARY KEY,
+          ecommerce_id UUID NOT NULL REFERENCES catalog_module.ecommerce(id) ON DELETE CASCADE,
+          customer_name VARCHAR(255) NOT NULL,
+          customer_email VARCHAR(255) NOT NULL,
+          customer_phone VARCHAR(50),
+          items_count INTEGER NOT NULL DEFAULT 1,
+          total DECIMAL(12, 2) NOT NULL,
+          status VARCHAR(50) NOT NULL DEFAULT 'PROCESSING',
+          shipping_address JSONB NOT NULL DEFAULT '{}'::jsonb,
+          items JSONB NOT NULL DEFAULT '[]'::jsonb,
+          coupon_id UUID REFERENCES catalog_module.coupons(id) ON DELETE SET NULL,
+          coupon_code VARCHAR(50),
+          coupon_discount DECIMAL(12, 2) DEFAULT 0.00,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );`,
+        { transaction }
+      );
+
+      await queryInterface.sequelize.query(
+        `CREATE INDEX IF NOT EXISTS idx_orders_ecommerce_created ON catalog_module.orders (ecommerce_id, created_at DESC);`,
+        { transaction }
+      );
+
+      // 4. Add coupon audit columns to catalog_module.orders if not exists (for backwards compatibility)
       await queryInterface.sequelize.query(
         `ALTER TABLE catalog_module.orders
           ADD COLUMN IF NOT EXISTS coupon_id UUID REFERENCES catalog_module.coupons(id) ON DELETE SET NULL,
@@ -83,14 +110,8 @@ module.exports = {
   async down(queryInterface) {
     const transaction = await queryInterface.sequelize.transaction();
     try {
-      await queryInterface.sequelize.query(
-        `ALTER TABLE catalog_module.orders
-          DROP COLUMN IF EXISTS coupon_id,
-          DROP COLUMN IF EXISTS coupon_code,
-          DROP COLUMN IF EXISTS coupon_discount;`,
-        { transaction }
-      );
       await queryInterface.sequelize.query(`DROP TABLE IF EXISTS catalog_module.coupon_usages CASCADE;`, { transaction });
+      await queryInterface.sequelize.query(`DROP TABLE IF EXISTS catalog_module.orders CASCADE;`, { transaction });
       await queryInterface.sequelize.query(`DROP TABLE IF EXISTS catalog_module.coupons CASCADE;`, { transaction });
       await transaction.commit();
     } catch (err) {
