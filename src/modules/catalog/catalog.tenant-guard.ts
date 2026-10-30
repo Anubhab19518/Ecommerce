@@ -31,10 +31,10 @@ function extractClientEcommerceId(req: Request): string | undefined {
  * Tenant resolution and authorization guard.
  *
  * Enforces that:
- * 1. The authenticated user's role assignment scope is the sole authority for tenant identification.
- * 2. An Ecommerce Admin can only access their assigned ecommerce scope.
- * 3. Client-supplied ecommerce IDs cannot be used to bypass tenant authority.
- * 4. Super Admins (unscoped/wildcard) are explicitly verified before operating on a specific tenant.
+ * 1. For unauthenticated storefront requests (public catalog browsing), X-Ecommerce-Id is used as the tenant scope.
+ * 2. For authenticated users, the role assignment scope is the authority.
+ * 3. An Ecommerce Admin can only access their assigned ecommerce scope.
+ * 4. Super Admins are explicitly verified before operating on a specific tenant.
  */
 export async function catalogTenantGuard(
   req: Request,
@@ -42,12 +42,19 @@ export async function catalogTenantGuard(
   next: NextFunction,
 ): Promise<void> {
   try {
+    const catalogReq = req as CatalogRequest;
+    const clientEcommerceId = extractClientEcommerceId(req);
     const userId = (req as Request & { user?: { id?: string } }).user?.id;
+
+    // Public storefront access: allow tenant resolution if X-Ecommerce-Id header/param is provided
     if (!userId) {
-      throw new UnauthorizedError('User authentication required');
+      if (clientEcommerceId) {
+        catalogReq.ecommerceId = clientEcommerceId;
+        return next();
+      }
+      throw new UnauthorizedError('User authentication required or X-Ecommerce-Id header missing');
     }
 
-    const catalogReq = req as CatalogRequest;
     const assignments = await authzService.getUserRoleAssignments(userId);
 
     if (assignments.length === 0) {
@@ -60,8 +67,6 @@ export async function catalogTenantGuard(
     );
 
     catalogReq.isSuperAdmin = isSuperAdmin;
-
-    const clientEcommerceId = extractClientEcommerceId(req);
 
     if (isSuperAdmin) {
       if (clientEcommerceId) {

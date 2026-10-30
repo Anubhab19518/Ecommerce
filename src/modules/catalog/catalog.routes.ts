@@ -55,97 +55,157 @@ import { catalogTenantGuard } from './catalog.tenant-guard';
 
 export const catalogRoutes = Router();
 
-// Protect all catalog endpoints with JWT authentication and tenant resolution guard
-catalogRoutes.use(authenticate);
-catalogRoutes.use(catalogTenantGuard);
+// Automatically authenticate if Authorization header is present (supports both public guest and authenticated access)
+catalogRoutes.use((req, res, next) => {
+  if (req.headers.authorization) {
+    return authenticate(req, res, next);
+  }
+  next();
+});
 
 // ========================= Ecommerce =========================
-catalogRoutes.get('/ecommerce', listEcommerce);
-catalogRoutes.post('/ecommerce', createEcommerce);
-catalogRoutes.get('/ecommerce/:id', getEcommerceById);
-catalogRoutes.patch('/ecommerce/:id', updateEcommerce);
+catalogRoutes.get('/ecommerce', authenticate, catalogTenantGuard, listEcommerce);
+catalogRoutes.post('/ecommerce', authenticate, catalogTenantGuard, createEcommerce);
+catalogRoutes.get('/ecommerce/:id', authenticate, catalogTenantGuard, getEcommerceById);
+catalogRoutes.patch('/ecommerce/:id', authenticate, catalogTenantGuard, updateEcommerce);
 
-// ========================= Categories =========================
-catalogRoutes.get('/categories', listCategories);
-catalogRoutes.post('/categories', createCategory);
-catalogRoutes.get('/categories/:id', getCategoryById);
-catalogRoutes.patch('/categories/:id', updateCategory);
-catalogRoutes.delete('/categories/:id', deleteCategory);
+// ========================= Categories (Public Read, Protected Write) =========================
+catalogRoutes.get('/categories', catalogTenantGuard, listCategories);
+catalogRoutes.get('/categories/:id', catalogTenantGuard, getCategoryById);
+catalogRoutes.post('/categories', authenticate, catalogTenantGuard, createCategory);
+catalogRoutes.patch('/categories/:id', authenticate, catalogTenantGuard, updateCategory);
+catalogRoutes.delete('/categories/:id', authenticate, catalogTenantGuard, deleteCategory);
 
-// ========================= Products =========================
-catalogRoutes.get('/products', listProducts);
-catalogRoutes.post('/products', createProduct);
-catalogRoutes.get('/products/:id', getProductById);
-catalogRoutes.patch('/products/:id', updateProduct);
-catalogRoutes.delete('/products/:id', deleteProduct);
+// ========================= Products (Public Read, Protected Write) =========================
+catalogRoutes.get('/products', catalogTenantGuard, listProducts);
+catalogRoutes.get('/products/:id', catalogTenantGuard, getProductById);
+catalogRoutes.post('/products', authenticate, catalogTenantGuard, createProduct);
+catalogRoutes.patch('/products/:id', authenticate, catalogTenantGuard, updateProduct);
+catalogRoutes.delete('/products/:id', authenticate, catalogTenantGuard, deleteProduct);
 
-// ========================= Product Images =========================
+// ========================= Product Images (Protected) =========================
 catalogRoutes.post(
   '/products/:productId/images',
+  authenticate,
+  catalogTenantGuard,
   uploadMiddleware.array('images', 10),
   uploadProductImages,
 );
-catalogRoutes.delete('/products/:productId/images/:imageId', deleteProductImage);
+catalogRoutes.delete(
+  '/products/:productId/images/:imageId',
+  authenticate,
+  catalogTenantGuard,
+  deleteProductImage,
+);
 
-// ========================= Product Options =========================
-catalogRoutes.get('/products/:productId/options', listProductOptions);
-catalogRoutes.post('/products/:productId/options', createProductOption);
-catalogRoutes.patch('/products/:productId/options/:optionId', updateProductOption);
-catalogRoutes.delete('/products/:productId/options/:optionId', deleteProductOption);
+// ========================= Product Options (Public Read, Protected Write) =========================
+catalogRoutes.get('/products/:productId/options', catalogTenantGuard, listProductOptions);
+catalogRoutes.post(
+  '/products/:productId/options',
+  authenticate,
+  catalogTenantGuard,
+  createProductOption,
+);
+catalogRoutes.patch(
+  '/products/:productId/options/:optionId',
+  authenticate,
+  catalogTenantGuard,
+  updateProductOption,
+);
+catalogRoutes.delete(
+  '/products/:productId/options/:optionId',
+  authenticate,
+  catalogTenantGuard,
+  deleteProductOption,
+);
 
-// ========================= Option Values =========================
-catalogRoutes.post('/products/:productId/options/:optionId/values', createProductOptionValue);
+// ========================= Option Values (Protected Write) =========================
+catalogRoutes.post(
+  '/products/:productId/options/:optionId/values',
+  authenticate,
+  catalogTenantGuard,
+  createProductOptionValue,
+);
 catalogRoutes.patch(
   '/products/:productId/options/:optionId/values/:valueId',
+  authenticate,
+  catalogTenantGuard,
   updateProductOptionValue,
 );
 catalogRoutes.delete(
   '/products/:productId/options/:optionId/values/:valueId',
+  authenticate,
+  catalogTenantGuard,
   deleteProductOptionValue,
 );
 
-// ========================= Product Variants =========================
-catalogRoutes.get('/products/:productId/variants', listVariants);
-catalogRoutes.post('/products/:productId/variants', createVariant);
-catalogRoutes.get('/products/:productId/variants/:variantId', getVariantById);
-catalogRoutes.patch('/products/:productId/variants/:variantId', updateVariant);
-catalogRoutes.delete('/products/:productId/variants/:variantId', deleteVariant);
+// ========================= Product Variants (Public Read, Protected Write) =========================
+catalogRoutes.get('/products/:productId/variants', catalogTenantGuard, listVariants);
+catalogRoutes.get('/products/:productId/variants/:variantId', catalogTenantGuard, getVariantById);
+catalogRoutes.post(
+  '/products/:productId/variants',
+  authenticate,
+  catalogTenantGuard,
+  createVariant,
+);
+catalogRoutes.patch(
+  '/products/:productId/variants/:variantId',
+  authenticate,
+  catalogTenantGuard,
+  updateVariant,
+);
+catalogRoutes.delete(
+  '/products/:productId/variants/:variantId',
+  authenticate,
+  catalogTenantGuard,
+  deleteVariant,
+);
 
-// ========================= Product Variant Images =========================
+// ========================= Product Variant Images (Protected) =========================
 catalogRoutes.post(
   '/products/:productId/variants/:variantId/images',
+  authenticate,
+  catalogTenantGuard,
   uploadMiddleware.array('images', 10),
   uploadVariantImages,
 );
 catalogRoutes.delete(
   '/products/:productId/variants/:variantId/images/:imageId',
+  authenticate,
+  catalogTenantGuard,
   deleteVariantImage,
 );
 
-// ========================= Units (Shared Reference Data) =========================
-catalogRoutes.get('/units', listUnits);
-catalogRoutes.get('/units/:id', getUnit);
+// ========================= Units (Public Reference Data) =========================
+catalogRoutes.get('/units', catalogTenantGuard, listUnits);
+catalogRoutes.get('/units/:id', catalogTenantGuard, getUnit);
 
-// ========================= Banners =========================
-catalogRoutes.get('/banners', listBanners);
-catalogRoutes.post('/banners', createBanner);
-catalogRoutes.post('/banners/upload', uploadMiddleware.single('image'), uploadBannerImage);
-catalogRoutes.get('/banners/:id', getBannerById);
-catalogRoutes.patch('/banners/:id', updateBanner);
-catalogRoutes.delete('/banners/:id', deleteBanner);
+// ========================= Banners (Public Read, Protected Write) =========================
+catalogRoutes.get('/banners', catalogTenantGuard, listBanners);
+catalogRoutes.get('/banners/:id', catalogTenantGuard, getBannerById);
+catalogRoutes.post('/banners', authenticate, catalogTenantGuard, createBanner);
+catalogRoutes.post(
+  '/banners/upload',
+  authenticate,
+  catalogTenantGuard,
+  uploadMiddleware.single('image'),
+  uploadBannerImage,
+);
+catalogRoutes.patch('/banners/:id', authenticate, catalogTenantGuard, updateBanner);
+catalogRoutes.delete('/banners/:id', authenticate, catalogTenantGuard, deleteBanner);
 
 // ========================= Orders =========================
-catalogRoutes.get('/orders', listOrders);
-catalogRoutes.post('/orders', createOrder);
-catalogRoutes.patch('/orders/:id', updateOrderStatus);
+catalogRoutes.get('/orders', authenticate, catalogTenantGuard, listOrders);
+catalogRoutes.post('/orders', catalogTenantGuard, createOrder);
+catalogRoutes.patch('/orders/:id', authenticate, catalogTenantGuard, updateOrderStatus);
 
 // ========================= Coupons =========================
-catalogRoutes.post('/coupons/validate', validateCoupon);
-catalogRoutes.get('/coupons', listCoupons);
-catalogRoutes.post('/coupons', createCoupon);
-catalogRoutes.get('/coupons/:id', getCouponById);
-catalogRoutes.patch('/coupons/:id', updateCoupon);
-catalogRoutes.delete('/coupons/:id', deleteCoupon);
+catalogRoutes.post('/coupons/validate', catalogTenantGuard, validateCoupon);
+catalogRoutes.get('/coupons', authenticate, catalogTenantGuard, listCoupons);
+catalogRoutes.post('/coupons', authenticate, catalogTenantGuard, createCoupon);
+catalogRoutes.get('/coupons/:id', authenticate, catalogTenantGuard, getCouponById);
+catalogRoutes.patch('/coupons/:id', authenticate, catalogTenantGuard, updateCoupon);
+catalogRoutes.delete('/coupons/:id', authenticate, catalogTenantGuard, deleteCoupon);
 
 // ========================= Customers =========================
-catalogRoutes.get('/customers', listCustomers);
+catalogRoutes.get('/customers', authenticate, catalogTenantGuard, listCustomers);

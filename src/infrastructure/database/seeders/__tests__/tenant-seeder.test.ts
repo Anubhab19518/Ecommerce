@@ -128,6 +128,7 @@ describe('Tenant Seeder', () => {
       { id: uid(5), name: 'Rasoi Ansh', slug: 'rasoi-ansh' },
       { id: uid(6), name: 'Kratkon', slug: 'kratkon' },
       { id: uid(7), name: 'Shree Shyam Impex', slug: 'shree-shyam-impex' },
+      { id: uid(8), name: 'Itra Sutra', slug: 'itra-sutra' },
     ]);
 
     // Categories already exist for each store

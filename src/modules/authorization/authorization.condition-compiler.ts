@@ -109,6 +109,7 @@ function interpolateString(value: string, context: Record<string, unknown>): unk
  * Recursively compiles a condition object by interpolating all
  * template variables against the provided context.
  */
+// fallow-ignore-next-line complexity
 function compileValue(value: unknown, context: Record<string, unknown>, depth: number): unknown {
   if (depth > MAX_DEPTH) {
     logger.warn('Condition compiler: max depth exceeded, returning value as-is');

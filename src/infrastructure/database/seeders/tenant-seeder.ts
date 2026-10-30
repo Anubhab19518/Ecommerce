@@ -497,6 +497,14 @@ export async function seedTenants(): Promise<void> {
         },
       ],
     },
+    {
+      name: 'Itra Sutra',
+      slug: 'itra-sutra',
+      adminEmail: 'itrasutra_admin@bazar.com',
+      adminName: 'Admin (Itra Sutra)',
+      categories: [],
+      products: [],
+    },
   ];
 
   for (const t of tenants) {

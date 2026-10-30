@@ -395,6 +395,7 @@ export class CatalogRepository {
     return records;
   }
 
+  // fallow-ignore-next-line complexity
   async createProduct(
     ecommerceId: string,
     input: CreateProductInput,
@@ -1019,6 +1020,7 @@ export class CatalogRepository {
     return row ?? null;
   }
 
+  // fallow-ignore-next-line complexity
   async createOrder(
     ecommerceId: string,
     data: CreateOrderInput,

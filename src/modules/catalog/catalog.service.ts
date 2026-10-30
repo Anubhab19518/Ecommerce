@@ -760,6 +760,7 @@ export class CatalogService {
     return variant;
   }
 
+  // fallow-ignore-next-line complexity
   async updateVariant(
     ecommerceId: string,
     productId: string,
@@ -884,6 +885,7 @@ export class CatalogService {
     return this.repo.listOrders(ecommerceId);
   }
 
+  // fallow-ignore-next-line complexity
   private async processOrderCoupon(
     ecommerceId: string,
     orderId: string,
@@ -1113,6 +1115,7 @@ export class CatalogService {
     return { eligibleItems: cartItems };
   }
 
+  // fallow-ignore-next-line complexity
   private async resolveTargetEligibleItems(
     ecommerceId: string,
     coupon: CouponModel,

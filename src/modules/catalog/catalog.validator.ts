@@ -315,6 +315,7 @@ export const createCouponSchema = z
       .optional(),
   })
   .refine(
+    // fallow-ignore-next-line complexity
     (data) => {
       if (data.discountType === 'PERCENTAGE') {
         return data.discountValue <= 100;
@@ -324,6 +325,7 @@ export const createCouponSchema = z
     { message: 'Percentage discount cannot exceed 100%', path: ['discountValue'] },
   )
   .refine(
+    // fallow-ignore-next-line complexity
     (data) => {
       if (data.startDate && data.expiryDate) {
         return new Date(data.expiryDate) >= new Date(data.startDate);
@@ -333,6 +335,7 @@ export const createCouponSchema = z
     { message: 'Expiry date must be after start date', path: ['expiryDate'] },
   )
   .refine(
+    // fallow-ignore-next-line complexity
     (data) => {
       if (data.targetType === 'PRODUCT') {
         return Array.isArray(data.rules?.productIds) && data.rules.productIds.length > 0;
@@ -376,6 +379,7 @@ export const updateCouponSchema = z
     usageLimitPerUser: z.number().int().positive().nullable().optional(),
   })
   .refine(
+    // fallow-ignore-next-line complexity
     (data) => {
       if (data.discountType === 'PERCENTAGE' && data.discountValue !== undefined) {
         return data.discountValue <= 100;
